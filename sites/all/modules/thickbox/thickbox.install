@@ -1,0 +1,14 @@
+<?php
+// $Id: thickbox.install,v 1.1.4.3 2010/04/30 19:48:56 frjo Exp $
+
+/**
+ * @file
+ * Installation functions for Thickbox.
+ */
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function thickbox_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'thickbox_%'");
+}

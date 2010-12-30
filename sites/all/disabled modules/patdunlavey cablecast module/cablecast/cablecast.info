@@ -1,0 +1,5 @@
+; $Id$
+name = CableCast
+description = Provides functions for accessing and displaying information from TMS CableCastWS
+core = 6.x
+package = CableCast Web Services

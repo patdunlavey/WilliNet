@@ -1,0 +1,15 @@
+; $Id: imagecache_actions.info,v 1.1.2.1 2010/08/12 11:38:25 dman Exp $
+name = Imagecache Actions
+description = Base for imagecache utilities used by the individual imagecache actions
+dependencies[] = imagecache
+dependencies[] = imageapi
+package = ImageCache
+core = 6.x
+
+
+; Information added by drupal.org packaging script on 2010-10-18
+version = "6.x-2.x-dev"
+core = "6.x"
+project = "imagecache_actions"
+datestamp = "1287403893"
+

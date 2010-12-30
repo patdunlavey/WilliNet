@@ -1,0 +1,7 @@
+; $Id$
+name = CableCast Extensions
+description = Provides functions for displaying Cablecast data
+core = 6.x
+project = "cablecast"
+dependencies[] = cablecast
+

@@ -1,0 +1,25 @@
+<?php
+class ImportTest extends DrupalTestCase {
+
+  function setUp()
+  {
+    
+  }
+
+  function get_info() {
+    return array(
+      'name' => t('Wordpress blog import'),
+      'desc' => t('Import a Wordpress blog from a WXR file.'),
+      'group' => t('Wordpress Import'),
+    );
+  }
+
+  function testSomething() {
+    $params = array (
+        "file_path" => drupal_get_path('module', 'wordpress_import'). '/tests/wordpress.xml',
+        "users_map" => array('admin' => '1')
+      );
+    wordpress_import_import_blog($params);
+  }
+}
+?>

@@ -1,0 +1,826 @@
+<?php
+/*
+ Plugin Name: Cablecast
+ Plugin URI: http://willinet.org
+ Description: Enables display of Tightrope cablecast schedule information in Drupal
+ Version: 0.1
+ Author: Patrick Dunlavey
+ Author URI: http://pdcarto.com
+ */
+
+/*  Copyright 2010  Patrick Dunlavey  (email : patdunlavey@gmail.com)
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License, version 2, as
+published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
+/**
+ * Implementation of hook_menu().
+ */
+function cablecast_menu() {
+  $items = array();
+
+  $items['admin/settings/cablecast'] = array(
+    'title'            => t('Cablecast'),
+    'description'      => t('Settings for Cablecast server.'),
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('cablecast_admin_settings'),
+    'access arguments' => array('administer cablecast'),
+    'file'             => 'cablecast.admin.inc',
+  );
+  $items['search/results'] = array(
+   'title' => 'Search Results',
+       'page callback' => 'cablecast_search_results',
+       'access callback'   => TRUE,
+       'type'     => MENU_CALLBACK 
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function cablecast_theme() {
+  return array(
+'cablecast_schedule' => array(
+'arguments' => array('schedule' => NULL),
+  ),
+  );
+}
+
+/**
+ * Implementation of hook_block().
+ */
+function cablecast_block($op = 'list', $delta = 0, $edit = array()) {
+  //  dpm('op: '.$op .' and delta: '.$delta);
+  switch ($op) {
+    case 'list':
+      $blocks[0]['info'] = t('Today on Cablecast');
+      $blocks[1]['info'] = t('Search Programs on Cablecast');
+      return $blocks;
+    case 'view':
+      $block = array();
+      switch ($delta) {
+        case 0:
+          $block = _cablecast_block_now_showing_list();
+          break;
+        case 1:
+          $block = cablecast_search_form_block();
+          break;
+      }
+      return $block;
+  }
+}
+
+function _cablecast_block_now_showing_list() {
+  $block['content'] = implode(_cablecast_callback('NowShowingList'));
+  $block['subject'] = t('Today on Cablecast');
+  return $block;
+}
+
+function cablecast_search_form_block() {
+  $block['subject'] = t('Search Programs on Cablecast');
+  /*
+   *   $search_result_node_id = 263;
+   $params = array('ChannelID' => 1);
+   $result = _cablecast_callback('GetCategories',$params);
+   // dpm($result);
+   if(is_object($result)) {
+   drupal_add_js('sites/all/modules/date/date_popup/lib/ui.datepicker.js');
+   drupal_add_js('sites/all/modules/date/date_popup/lib/jquery.timeentry.pack.js');
+   drupal_add_js('sites/all/modules/date/date_popup/date_popup.js');
+
+   $body =   '<table><tr><td>'.
+   '<select name="category" size="1">'.
+   '<option value="0">All Categories</option>';
+   foreach ($result->GetCategoriesResult->Category as $category) {
+   $body .=  '<option value="$category->CategoryID">$category->Name</option>\n';
+   }
+   $body .=  '</select></td></tr><tr><td style="white-space: nowrap;">'.
+   '<select id="EventDateComparer"name="EventDateComparer">'.
+   '<option value="none" selected="selected">(All Dates)</option>'.
+   '<option value="=">On</option>'.
+   '<option value="&gt;" >Since</option>'.
+   '<option value="&lt;">Before</option>'.
+   '</select>'.
+   '<input type="text" id="EventDate" name="EventDate" class="datepicker">'.
+   '</td></tr></table>';
+
+   $advanced_search_fieldset = array(
+   '#title' => 'More search options',
+   '#collapsible' => TRUE,
+   '#collapsed' => TRUE,
+   '#value' => $body);
+
+   $block['content'] = '<form action="/node/'.$search_result_node_id.'" method="POST">'.
+   '<table><tr><td><input class="text" type="text" name="title" size="25"></td></tr></table>';
+   $block['content'].= theme('fieldset', $advanced_search_fieldset);
+   $block['content'] .= '<center><input type="submit" name="Search" value="Search"></center></form>';
+   $block['content'] .= '<script  type="text/javascript">'.
+   '$(document).ready(function() {'.
+   '$("#EventDate").datepicker({dateFormat: "mm/dd/yy"});'.
+   '});'.
+   '</script>';
+   */
+  //testing!!!
+  $block['content'] = drupal_get_form('cablecast_search_form');
+  dpm($block);
+  /*
+   }
+   else {
+   $block['content'] = 'Sorry, program search is not available at this time';
+   }
+   */
+  return $block;
+}
+
+function cablecast_search_form(){
+  // set up the options lists for categories and date compare
+  $category_options = array ();
+  $params = array('ChannelID' => 1);
+  $result = _cablecast_callback('GetCategories',$params);
+  $category_options[0] = t('All categories');
+  foreach ($result->GetCategoriesResult->Category as $category) {
+    $category_options[$category->CategoryID] = t($category->Name);
+  }
+  $date_compare_options = array (
+            'none' => t('(All Dates)'),
+  '=' => t('On'),
+  '$gt;' => t('Since'),
+  '&lt;' => t('Before'),
+  );
+   
+  $form['search_text'] = array(
+  '#title' => t('Search text'),
+  '#type' => 'textfield',
+  '#size' =>25,
+  );
+  $form['more_options'] = array(
+  '#title' => t('More search options'),
+  '#type' => 'fieldset',
+  '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['more_options']['category'] = array (
+  '#title' => t('Program category'),
+  '#type' => 'select',
+  '#default_value' => 0,
+  '#options' => $category_options,
+  );
+  $form['more_options']['date'] = array(
+  '#title' => t('Date'),
+  '#type' => 'date_popup',
+      '#input' => TRUE,
+      '#tree' => TRUE,
+      '#date_timezone' => date_default_timezone_name(),
+      '#date_format' => 'm/d/Y',
+      '#date_increment' => 1,
+      '#date_year_range' => '-3:+3',
+      '#process' => array('date_popup_process'),
+    '#description' => t('Be sure to select a date comparison option'),
+  );
+  $form['more_options']['date_compare'] = array (
+  '#title' => t('Date comparison'),
+  '#type' => 'select',
+  '#default_value' => 'none',
+  '#options' => $date_compare_options,
+  );
+  $form['submit'] = array(
+  '#type' => 'submit',
+  '#value' => t('Search'),
+  );
+  return $form;
+}
+
+function cablecast_search_form_submit($form, &$form_state) {
+  //  dpm($form);
+  $event_date_str = "2007-10-01T00:00:00Z";
+  if ($form['search_text']['#value'] == "") {
+    $search_string = "%";
+  } else {
+    $search_string = $form['search_text']['#value'];
+  }
+  if ($form['more_options']['category']['#value'] == "") {
+    $category_string = "0";
+  } else {
+    $category_string = $form['more_options']['category']['#value'];
+  }
+  if ($form['more_options']['date']['#value']['date'] == "") {
+    $EventDate = "01/01/2007";
+  } else {
+    $EventDate = $form['more_options']['date']['#value']['date'];
+  }
+  if ($form['more_options']['date_compare']['#value'] == "none") {
+    $EventDateComparer = ">";
+    $EventDate = "01/01/2007";
+  } else {
+    $EventDateComparer = str_replace('$gt;', '>', $form['more_options']['date_compare']['#value']);
+    dpm($EventDateComparer);
+  }
+  $cablecast = new CableCast();
+  $shows = $cablecast->SearchShows($search_string, $category_string, $EventDateComparer, $EventDate);
+  //dpm($shows);
+  $content = "\n<!-- count = " . count($shows) . " -->\n";
+  if ($shows[0]) {
+    for ($i = 0; $i < count($shows); $i++) {
+      $content .= "<p><a href='/show/" . $shows[$i]->ShowID . "'>";
+      $content .= $shows[$i]->Title."</a>";
+      if(isset($shows[$i]->NodeID)) {
+        $content .= ' <img src="/sites/default/files/images/video-icon.gif">';
+      }
+      $content .=  "</p>";
+    }
+  } else {
+    $content = "There are no shows that match your search ....";
+  }
+
+  //  print (theme('page',$content));
+  //show cablecast_search_results page
+}
+
+
+if (!class_exists("CableCast")) {
+  class CableCast {
+    var $server_url;
+    var $client;
+    function CableCast() { //constructor
+      // init the server url
+      $cablecast_server_base_url = variable_get('cablecast_server_url',NULL);
+      if(!$cablecast_server_base_url) {
+        drupal_set_message('CableCast server URL needs to be configured!<br><a href="admin/settings/cablecast">Go to the cablecast settings page</a>.','error');
+        return;
+      }
+      $this->server_url = $cablecast_server_base_url."CablecastWS/CablecastWS.asmx?WSDL";
+      try {
+        $this->client = new SoapClient($this->server_url);  //Creates New SOAP client using WSDL file
+        // See if cablecast client is real by calling it
+        // need a way to test that we have connectivity to Cablecast without throwing
+        // a PHP or SOAP error if we can't connect. Using try - catch allows it to fail gracefully
+        // but still shows warning/error messages.
+        $this->client->WSVersion();
+        return TRUE;
+      } catch (SoapFault $fault) {
+        //        print("Sorry, Cablecast returned the following error: ".$fault->faultstring);
+        unset($this->client);
+        return FALSE;
+      }
+    }
+
+    function server_url() {
+      return $this->server_url;
+    }
+
+    function getChannelName($channelID) {
+      if ($client = $this->client) {
+        try {
+          $channels = $client->GetChannels();
+          //      print_r($channels);
+          foreach($channels->GetChannelsResult->Channel as $channeldata) {
+            if($channelID == $channeldata->ChannelID) {
+              return $channeldata->Name;
+            }
+          }
+        } catch (SoapFault $fault) {
+          return;
+        }
+      }
+    }
+
+    function getCategories($channelID) {
+      if ($client = $this->client) {
+        try {
+          $categories = $client->GetCategories($channelID);
+          //dpm($categories);
+          return($categories);
+        }
+        catch (SoapFault $fault) {
+          return;
+        }
+      }
+    }
+
+
+    function getNowShowingOrNextUp($channelID) {
+      if ($client = $this->client) {
+        try {
+          //      var_dump($client);
+
+          //Some funky Time Calculations
+          $offset = 0;
+          $padding = 12;
+          $day = 60*60*24;
+          $currentDay = date("Y-m-d")."T00:00:00";
+          $currentDayTime =  date("Y-m-d")."T".date("H:i:s");
+          $convertedDayTime = strtotime($currentDayTime);
+          $searchTimestr = $convertedDayTime-$day+($offset * 60 * 60)+($padding * 3600);
+          $searchTime = date("Y-m-d", $searchTimestr)."T".date("H:i:s", $searchTimestr);
+
+          $channelName = $this->getChannelName($channelID);
+          $defualtSource = "Could not connect to ".$channelName." Cablecast server";
+
+          $result = $client->GetScheduleInformation(array(
+        'ChannelID'        => $channelID,
+        'FromDate'         => $currentDay,
+        'ToDate'           => $searchTime,
+        'restrictToShowID' => 0));
+          //print_r($result);
+          $resultNumber = count($result['GetScheduleInformationResult']['ScheduleInfo']);
+
+          if($resultNumber == 0)
+          {
+            return $defualtSource;
+          }
+
+          if($resultNumber == 1)
+          {
+            return $defualtSource;
+          }
+
+          if($resultNumber > 1)
+          {
+            $count = 0;
+            $beginningTime;
+            $endingTime;
+            $nowShowing = $nextUp = 0;
+            while ($count <= ($resultNumber - 1) && $nowShowing == 0 && $nextUp == 0)
+            {
+              $beginningTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$count]['StartTime']);
+              $endingTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$count]['EndTime']);
+
+              if(($beginningTime <= ($convertedDayTime + ($offset * 60 * 60))) && ($endingTime > ($convertedDayTime + ($offset * 60 * 60))))
+              {
+                $nowShowing = $count;
+              }
+              elseif($beginningTime > ($convertedDayTime + ($offset * 60 * 60)))
+              {
+                $nextUp = $count;
+              }
+
+              $count++;
+            }
+
+            //if ($nowShowing == '0')
+            if ($nextUp)
+            {
+              //return $defualtSource;
+              $nextbeginningTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['StartTime']);
+              $nextendingTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['EndTime']);
+              return "<div class='nextshowingfield'><span class='label'>Next up on ".$channelName.":</span> ".$result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['ShowTitle'].": ".date("g:iA",$nextbeginningTime). " to ".date("g:iA",$nextendingTime)."</div>";
+            }
+
+            elseif($nowShowing)
+            {
+
+              return "<div class='nowshowingfield'><span class='label'>Now on ".$channelName.":</span> ".$result['GetScheduleInformationResult']['ScheduleInfo'][$nowShowing]['ShowTitle'].": ".date("g:iA",$beginningTime). " to ".date("g:iA",$endingTime)."</div>";
+
+            }
+            else
+            {
+              return $defaultSource;
+            }
+          }
+        } catch (SoapFault $fault) {
+          return;
+        }
+      }
+    }
+
+    /* getSchedule
+     * Note that, if using 'now' as the value for $ref, the combined values of
+     * $offset_start and $offset_end should be greater than two or three hours
+     * weird results happen otherwise
+     * $ref can also be a number, in which case it's taken to be an offset in days
+     * from the current date
+     */
+    function getSchedule($ShowID = 0, $channelIDs = array(), $ref = 'today', $offset_start = 0, $offset_end = 12) {
+      if ($client = $this->client) {
+        //      var_dump($client);
+        try {
+
+          //Some funky Time Calculations
+          // for some reason, GetScheduleInformation expects 'ToDate' to be one day before the actual to-date
+          // so 60*60*24 needs to be subtracted, but only from the 'ToDate'
+          $day = 60*60*24;
+          if($ref=='now') { //figure time window relative to right now
+            $currentDayTime =  date("Y-m-d")."T".date("H:i:s");
+            $convertedStartTime = strtotime($currentDayTime)-($offset_start * 3660);
+            $startTime = date("Y-m-d", $convertedStartTime)."T".date("H:i:s", $convertedStartTime);
+            $searchTimestr = strtotime($currentDayTime)-$day+($offset_end * 3600);
+          }
+          elseif (is_numeric($ref)) {
+            $timestamp = _cablecast_site_time() + $ref * $day;
+            $startTime = date("Y-m-d", $timestamp)."T00:00:00";
+            $searchTimestr = strtotime($startTime);
+          }
+          elseif ($timestamp = strtotime($ref)) {
+            $startTime = date("Y-m-d", $timestamp)."T00:00:00";
+            $searchTimestr = strtotime($startTime);
+          }
+          else
+          { // reference is 'today'
+            $startTime = date("Y-m-d")."T00:00:00";
+            $searchTimestr = strtotime($startTime);
+          }
+          $searchTime = date("Y-m-d", $searchTimestr)."T".date("H:i:s", $searchTimestr);
+          $schedule = array();
+          foreach($channelIDs as $channelID){
+
+            $channelName = $this->getChannelName($channelID);
+            $defualtSource = "Could not connect to ".$channelName." Cablecast server";
+
+            $result = $client->GetScheduleInformation(array(
+          'ChannelID'        => $channelID,
+          'FromDate'         => $startTime,
+          'ToDate'           => $searchTime,
+          'restrictToShowID' => $ShowID));
+            $count = 0;
+            $shows = is_array($result->GetScheduleInformationResult->ScheduleInfo) ? $result->GetScheduleInformationResult->ScheduleInfo : array($result->GetScheduleInformationResult->ScheduleInfo);
+            if($shows[0] != NULL ) {
+              $online_show_ids = $this->GetOnlineVideoShowIDs();
+              $count = count($shows);
+              $now = _cablecast_site_time();
+              for($i = 0; $i < $count; $i++) {
+                if(isset($online_show_ids[$shows[$i]->ShowID])) {
+                  $shows[$i]->NodeID = $online_show_ids[$shows[$i]->ShowID];
+                }
+                $startTimeStamp = strtotime($shows[$i]->StartTime);
+                $endTimeStamp = strtotime($shows[$i]->EndTime);
+                // We interpret a show timespan of less than twenty to mean that it's a live broadcast with an unknown ending time.
+                // If the next show hasn't started yet, we therefore consider the live program to take all the time until the next
+                // show
+                if( $now >= $startTimeStamp && $now <= $endTimeStamp )
+                {
+                  $shows[$i]->tense = "present";
+                }
+                elseif( $now >= $startTimeStamp && $endTimeStamp - $startTimeStamp < 20 && isset($shows[$i+1]) && strtotime($shows[$i+1]->StartTime) > $now )
+                {
+                  $shows[$i]->tense = "present";
+                  $a = strtotime($shows[$i+1]->StartTime)-1;
+                  $shows[$i]->EndTime = date("Y-m-d\TH:i:s", $a);
+                }
+                elseif($now >= $endTimeStamp)
+                {
+                  $shows[$i]->tense = "past";
+                }
+                else
+                {
+                  $shows[$i]->tense = "future";
+                }
+                $shows[$i]->ChannelID = $channelID;
+                $shows[$i]->ChannelName = $channelName;
+              } //foreach show in array
+              $schedule = array_merge($schedule,$shows);
+            } // if $shows is not null
+          } // foreach channelIDs
+          usort($schedule,'_cablecast_compare_show_time');
+          return($schedule);
+        } catch (SoapFault $fault) {
+          return;
+        }
+      }
+    } //End function getSchedule
+
+
+    /**
+     * SearchShows
+     *
+     * @param $search_string
+     * @param $category
+     * @param $dateComparator
+     * @param $date
+     * @param $identifiers
+     * to use identifiers, pass in an object where $identifiers->tags is an array of strings
+     * corresponding to the "Tags" custom cablecast field
+     * and where $identifiers->series_id is a string corresponding to the
+     * "Series ID" custom cablecast field
+     */
+    function SearchShows($search_string = '%', $category = 0, $dateComparator = '>', $date = '01/01/2007', $identifiers=NULL)
+    {
+      if ($client = $this->client) {
+
+        try {
+          $event_date_str = date("Y-m-d\T00:00:00", strtotime($date));
+          if($dateComparator =="" || $dateComparator == NULL) {
+            $dateComparator = '>';
+          }
+          if(! strtotime($date)) {
+            $date = '01/01/2007';
+          }
+          // searching in both channels just seems to produce duplicates of every show
+          // disabling searching both channels (but keeping the code to do so in case it
+          // turns out to be needed)
+          //		$channels = $client->GetChannels();
+          //      $channels = $channels->GetChannelsResult->Channel;
+          $channels = array(0 => (object)array("ChannelID" => 1));
+          $shows = array();
+          foreach($channels as $channel)
+          {
+
+            $params = array('ChannelID' => $channel->ChannelID,
+            'restrictToProjectID' => 0,
+			'restrictToProducerID' => 0,
+			'restrictToCategoryID' => $category,
+	        'eventDate' => $event_date_str,
+			'dateComparator' => $dateComparator,
+			'displayStreamingShowsOnly'=> false,
+			'searchOtherSites' => false,
+			'searchString' => $search_string
+            );
+            $result = $client->AdvancedShowSearch($params);
+            if (is_array($result->AdvancedShowSearchResult->SiteSearchResult->Shows->ShowInfo)) {
+              $shows = array_merge($shows, $result->AdvancedShowSearchResult->SiteSearchResult->Shows->ShowInfo);
+            } else {
+              $shows[] = $result->AdvancedShowSearchResult->SiteSearchResult->Shows->ShowInfo;
+            }
+          }
+          //*/
+          // now go and filter for any provided identifiers
+          // we're using logical 'OR' any match is a match
+          // start with series id          
+          if(is_object($identifiers)) {
+            if(isset($identifiers->series_id) && strlen($identifiers->series_id)>0) {
+              foreach ($shows as $show) {
+                if(is_array($show->CustomFields->CustomField)) {
+                  foreach($show->CustomFields->CustomField as $custom_field) {
+                    if($custom_field->Name == "Series ID" && $custom_field->Value == $identifiers->series_id) {
+                      $show->matched = TRUE;
+                    }
+                  }
+                }
+                elseif(is_object($show->CustomFields->CustomField)) {
+                  $custom_field = $show->CustomFields->CustomField;
+                  if($custom_field->Name == "Series ID" && $custom_field->Value == $identifiers->series_id) {
+                    $show->matched = TRUE;
+                  }
+                }
+              }
+            }
+            // then check for matches against tags
+            if(is_array($identifiers->tags)) {
+              foreach($identifiers->tags as $tag) {
+                if(strlen($tag)>0) {
+                  foreach ($shows as $show) {
+                    if(is_array($show->CustomFields->CustomField)) {
+                      foreach($show->CustomFields->CustomField as $custom_field) {
+                        if($custom_field->Name == "Tag" && $custom_field->Value == $tag) {
+                          $show->matched = TRUE;
+                        }
+                      }
+                    }
+                    elseif(is_object($show->CustomFields->CustomField)) {
+                      $custom_field = $show->CustomFields->CustomField;
+                      if($custom_field->Name == "Tag" && $custom_field->Value == $tag) {
+                        $show->matched = TRUE;
+                      }
+                    }
+                  }
+                }
+
+              }
+            }
+            //replace $shows with just those that were matched
+            $matched_shows = array();
+            foreach($shows as $show) {
+              if($show->matched == TRUE) {
+                $matched_shows[] = $show;
+              }
+            }
+            $shows = $matched_shows;
+          }
+
+          $online_show_ids = $this->GetOnlineVideoShowIDs();
+          //          dpm($online_show_ids);
+          foreach ($shows as $show) {
+            //dpm("here: ".$show->ShowID.", next: " . $online_show_ids[$show->ShowID]);
+            if(isset($online_show_ids[$show->ShowID])) {
+              $show->NodeID = $online_show_ids[$show->ShowID];
+            }
+//            dpm($shows);
+          }
+          return $shows;
+        } catch (SoapFault $fault) {
+          return;
+        }
+      }
+    }
+
+
+    /**
+     * NowShowingList
+     * return an html list of the current show and next $timespan hours worth of shows
+     * if there is no program currently showing, say that WilliBoard is currently showing
+     * consider LIVE (ten second) shows to last until next show
+     * default $channelIDs is 1 and 2
+     * default timespan is three hours
+     */
+    function NowShowingList($channels = array(array('id'=> 2, 'title'=>'Channel 17, Culture', 'link' => '/content/channel-17-cultural-programs'), array('id'=> 1,'title'=>'Channel 16, Municipal Meetings', 'link' => '/content/channel-16-municipal-meetings')), $timespan=3, $interstitial_show_title = 'WilliBoard - Community Notices', $link_path = '/show/') {
+      if($this->client) {
+        // start by just getting all of today's shows
+        $time = _cablecast_site_time();
+        $endtime = $time + ($timespan * 3660);
+        $lists = array();
+        foreach($channels as $channel) {
+          $shows = $this->getSchedule(0, array($channel['id']), 'today');
+          $count = count($shows);
+          // remove shows that preceed current or most recently shown
+          //		dpm($shows);
+          for($i = 1; $i < $count && strtotime($shows[1]->StartTime) <= $time; $i++) {
+            array_shift($shows);
+            //			dpm($shows);
+          }
+          $count = count($shows);
+          // remove shows that start after the timespan
+          for($i = $count-1; $i > 0 && strtotime($shows[$i]->StartTime) > $endtime; $i--) {
+            array_pop($shows);
+          }
+          if($shows[0]->tense == 'past') {
+            $shows[0]->ScheduleID = $shows[0]->ShowID = NULL;
+            $shows[0]->ShowTitle = $interstitial_show_title;
+            $endTimeStamp = strtotime($shows[1]->StartTime)-1;
+            $startTimeStamp = strtotime($shows[0]->EndTime)+1;
+            $shows[0]->StartTime = date("Y-m-d\TH:i:s", $startTimeStamp);
+            $shows[0]->EndTime = date("Y-m-d\TH:i:s", $endTimeStamp);
+            $shows[0]->tense = 'present';
+          }
+          $list = '<ul class="schedule"><div class="channel-title">';
+          if (strlen($channel['link'])>2) {
+            $list .= '<a href="'.$channel['link'].'">'.$channel['title'].'</a></div>';
+          }
+          else
+          {
+            $list .= $channel['title'].'</div>';
+          }
+          $oddeven = 'odd';
+          $online_show_ids = $this->GetOnlineVideoShowIDs();
+          foreach($shows as $show) {
+            if($show->ShowID && isset($online_show_ids[$show->ShowID])) {
+              $show->NodeID = $online_show_ids[$show->ShowID];
+            }
+            $phptime = strtotime($show->StartTime);
+            $beginningTime = date("g:i",$phptime);
+            $beginningTime .= date("A",$phptime) == 'PM' ? 'P': 'A';
+            if($show->ShowID) {
+              $showTitle = '<a href="'.$link_path.$show->ShowID.'" title="Click to see show details, watch online (if available), and see other broadcast times">'.$show->ShowTitle.'</a>';
+            }
+            else
+            {
+              $showTitle = $show->ShowTitle;
+            }
+
+            $list .= '<li class="'.$show->tense.' '.$oddeven.'">';
+            $list .= '<ul class = "NowShowingItem Channel_'.$show->ChannelID.'">';
+            if($show->tense == 'present') {
+              $list .= '<div class="now-showing-notice">Currently Showing:</div>';
+            } else {
+              $list .= '<li class = "time">'.$beginningTime.'</li>';
+            }
+            $list .= '<li class = "title">'.$showTitle.'</li>';
+            if(isset($show->NodeID) && $show->ShowID) {
+              $list .= '&nbsp;<img src="/sites/default/files/images/video-icon.gif" border="0">';
+            }
+            $list .= '</ul></li>';
+            $oddeven = $oddeven == 'odd' ? 'even' : 'odd'  ;
+          }
+          $list .= '</ul>';
+          $lists[] = $list;
+        }
+        return $lists;
+      }
+      else {
+        return FALSE;
+      }
+
+    } // End Functon NowShowingList
+
+
+    /**
+     * GetScheduleByCategory
+     * Cablecast doesn't provide this function, so we need to first get a list of shows
+     * in the category, and then get the schedules for each of them
+     * Ugh!
+     */
+    function GetLiveMeetingSchedule($days = 1) {
+      // there seems to be no way to get the live meeting show ids programmatically
+      if ($client = $this->client) {
+        try {
+          $day = 60*60*24;
+          $startTime = date("Y-m-d", _cablecast_site_time())."T00:00:00";
+          $timestamp = _cablecast_site_time() + ($days -1) * $day;
+          $searchTime = date("Y-m-d\TH:i:s", $timestamp);
+          $shows = array();
+          $showIDs = array(141=>2,153=>2,164=>2,190=>2,217=>2,254=>1,377=>2);
+          foreach($showIDs as $showID => $channelID) {
+            $params = array(
+          'ChannelID'        => $channelID,
+          'FromDate'         => $startTime,
+          'ToDate'           => $searchTime,
+          'restrictToShowID' => $showID,
+            );
+            $result = $this->client->GetScheduleInformation($params);
+            if(is_array($result->GetScheduleInformationResult->ScheduleInfo)) {
+              foreach ($result->GetScheduleInformationResult->ScheduleInfo as $info) {
+                $info->ChannelID = $channelID;
+              }
+              $shows = array_merge($shows, $result->GetScheduleInformationResult->ScheduleInfo);
+            }
+            elseif (is_object($result->GetScheduleInformationResult->ScheduleInfo)) {
+              $result->GetScheduleInformationResult->ScheduleInfo->ChannelID = $channelID;
+              $shows[] = $result->GetScheduleInformationResult->ScheduleInfo;
+            }
+             
+          }
+          usort($shows,'_cablecast_compare_show_time');
+          return($shows);
+        } catch (SoapFault $fault) {
+          return;
+        }
+      }
+    }
+
+    /** GetOnlineVideoShowIDs
+     *
+     */
+    function GetOnlineVideoShowIDs() {
+      $sql = ' SELECT field_show_id_value AS ShowID, nid as NodeID FROM {content_type_video} WHERE field_show_id_value IS NOT NULL';
+      $result = db_query($sql);
+      $ids = array();
+      while ($row = db_fetch_object($result)) {
+        $ids[$row->ShowID] = $row->NodeID;
+      }
+      return $ids;
+    }
+
+  }//End Class CableCast
+} // if exists class CableCast
+
+// sort function for schedule sort after merge
+function _cablecast_compare_show_time($a,$b) {
+  return $a->StartTime > $b->StartTime ? 1 : -1;
+}
+
+function _cablecast_site_time() {
+  $offset = variable_get('date_default_timezone', date('Z')) - date('Z');
+  return time()+$offset;
+}
+
+function _cablecast_is_connected($url)
+{
+  //check to see if the local machine is connected to the web
+  //uses sockets to open a connection to apisonline.com
+  $connected = @fsockopen($url,80);
+  if ($connected){
+    $is_conn = true;
+    fclose($connected);
+  }else{
+    $is_conn = false;
+  }
+  return $is_conn;
+
+}//end _cablecast_is_connected function
+
+/**
+ *  _cablecast_callback
+ *  enables calling functions from the CableCast class without
+ *  first instantiating a class object
+ *  the first argument is a string of the class function's name
+ *  provide additional arguments as needed by the function being called
+ * @params[0] string $callback
+ *   the name of the function to call
+ * @params[>0]  $args
+ *   additional arguments used by the function
+ * @return array or object from the functions
+ */
+
+function _cablecast_callback() {
+  $args = func_get_args();
+  $callback = array_shift($args);
+  if($callback) {
+    if (class_exists("CableCast")) {
+      $cablecast = new CableCast();
+    }
+    if(isset($cablecast->client) ) {
+      if(count($args) > 0) {
+        //        dpm($args);
+        return call_user_func_array(array($cablecast, $callback), $args);
+      }
+      else {
+        return call_user_func(array($cablecast, $callback));
+      }
+    }
+    else {
+      return 'Error: could not connect to Cablecast server';
+    }
+  }
+}
+
+?>

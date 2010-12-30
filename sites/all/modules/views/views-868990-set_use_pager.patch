@@ -1,0 +1,103 @@
+diff --git includes/view.inc includes/view.inc
+index 8e359e0..5e6a399 100644
+--- includes/view.inc
++++ includes/view.inc
+@@ -36,6 +36,7 @@ class view extends views_db_object {
+   var $current_page = NULL;
+   var $items_per_page = NULL;
+   var $offset = NULL;
++  var $use_pager = NULL;
+   var $total_rows = NULL;
+ 
+   // Places to put attached renderings:
+@@ -106,6 +107,33 @@ class view extends views_db_object {
+   }
+ 
+   /**
++   * Set the pager usage.
++   *
++   * @param $use_pager
++   *   Boolean value to force to use a pager or not.
++   */
++  function set_use_pager($use_pager) {
++    $this->use_pager = $use_pager;
++
++    // If the pager is already initialized, pass it through to the pager.
++    if (!empty($this->query->pager)) {
++      $this->query->pager->set_use_pager($use_pager);
++    }
++  }
++
++  /**
++   * Get the pager usage.
++   */
++  function get_use_pager() {
++    if (!empty($this->query->pager)) {
++      return $this->query->pager->get_items_per_page();
++    }
++    else {
++      return $this->use_pager;
++    }
++  }
++
++  /**
+    * Get the items per page from the pager.
+    */
+   function get_items_per_page() {
+@@ -355,6 +383,10 @@ class view extends views_db_object {
+     if (empty($this->query->pager)) {
+       $this->query->pager = $this->display_handler->get_plugin('pager');
+ 
++      if (isset($this->use_pager)) {
++        $this->query->pager->set_use_pager($this->use_pager);
++      }
++
+       if ($this->query->pager->use_pager()) {
+         $this->query->pager->set_current_page($this->current_page);
+       }
+diff --git plugins/views_plugin_pager.inc plugins/views_plugin_pager.inc
+index a8e4353..7be6bc5 100644
+--- plugins/views_plugin_pager.inc
++++ plugins/views_plugin_pager.inc
+@@ -8,6 +8,7 @@
+  */
+ class views_plugin_pager extends views_plugin {
+   var $current_page = NULL;
++  var $use_pager = NULL;
+   var $total_items = 0;
+ 
+   /**
+@@ -62,6 +63,23 @@ class views_plugin_pager extends views_plugin {
+   }
+ 
+   /**
++   * Set the pager usage.
++   *
++   * @param $use_pager
++   *   Boolean value to force to use a pager or not.
++   */
++  function set_use_pager($use_pager) {
++    $this->use_pager = $use_pager;
++  }
++
++  /**
++   * Get the pager usage.
++   */
++  function get_use_pager() {
++    return $this->use_pager;
++  }
++
++  /**
+    * Get the current page.
+    *
+    * If NULL, we do not know what the current page is.
+@@ -121,6 +139,9 @@ class views_plugin_pager extends views_plugin {
+    * Only a couple of very specific pagers will set this to false.
+    */
+   function use_pager() {
++    if (isset($this->use_pager)) {
++      return $this->use_pager;
++    }
+     return TRUE;
+   }
+ 

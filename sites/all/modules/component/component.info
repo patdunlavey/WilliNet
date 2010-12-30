@@ -1,0 +1,10 @@
+name = Component
+description = Helper functions to do pull-based templates and provide convenient Ajax callbacks.
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-07-11
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "component"
+datestamp = "1278833756"
+

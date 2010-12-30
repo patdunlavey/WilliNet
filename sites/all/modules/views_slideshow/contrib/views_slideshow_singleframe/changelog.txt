@@ -1,0 +1,12 @@
+// $Id: changelog.txt,v 1.1.2.3 2009/06/19 17:48:00 aaron Exp $
+
+Changelog for Views Slideshow: SingleFrame
+
+June 2009
+---------
+ * Revert to Branch 1 for development.
+
+April 2009
+----------
+ * Use Drupal.behaviors and settings for js (aaron).
+ * Separate functionality from Views Slideshow (aaron).

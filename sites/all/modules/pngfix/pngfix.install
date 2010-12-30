@@ -1,0 +1,10 @@
+<?php
+// $Id: pngfix.install,v 1.1.2.1 2009/06/08 12:12:23 robloach Exp $
+
+/**
+ * Implementation of hook_uninstall()
+ *
+ */
+function pngfix_uninstall() {
+  variable_del('pngfix_css_classes');
+}

@@ -1,0 +1,13 @@
+; $Id: views_slideshow_singleframe.info,v 1.1.2.1.4.1 2010/07/24 19:01:25 redndahead Exp $
+name = Views Slideshow: SingleFrame (Legacy)
+description = Adds a Single Frame slideshow mode to Views Slideshows.
+dependencies[] = views_slideshow
+package = Views
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-11-12
+version = "6.x-3.x-dev"
+core = "6.x"
+project = "views_slideshow"
+datestamp = "1289564927"
+
