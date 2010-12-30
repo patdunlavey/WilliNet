@@ -1,3 +1,4 @@
+
 [10-Aug-2010 11:05:06] PHP Warning:  Table &#039;pat_willinet.access&#039; doesn&#039;t exist
 query: SELECT 1 FROM access WHERE type = &#039;host&#039; AND LOWER(&#039;74.76.12.141&#039;) LIKE LOWER(mask) AND status = 0 LIMIT 0, 1 in /home/pat/public_html/willinet/includes/database.mysql.inc on line 128
 [10-Aug-2010 11:05:06] PHP Warning:  session_start() [<a href='function.session-start'>function.session-start</a>]: Cannot send session cookie - headers already sent by (output started at /home/pat/public_html/willinet/includes/database.mysql.inc:128) in /home/pat/public_html/willinet/includes/bootstrap.inc on line 1143
