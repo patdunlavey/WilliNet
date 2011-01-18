@@ -1,5 +1,5 @@
 <?php
-// $Id: preprocess-page.inc,v 1.4.2.10 2010/07/22 14:30:03 himerus Exp $
+// $Id: preprocess-page.inc,v 1.4.2.11 2010/11/16 14:39:39 himerus Exp $
 global $theme_key;
 //include_once './' . drupal_get_path('theme', 'omega') . '/theme-functions.inc';
 $settings = theme_get_settings($theme_key);
@@ -91,7 +91,7 @@ $preface_regions = array(
       'suffix' => $settings['omega_preface_last_suffix'])
   ),
 );
-$vars = static_region_builder($preface_regions, $settings['preface_wrapper_grids'], $vars);
+$vars = static_region_builder($preface_regions, $vars['preface_wrapper_grids'], $vars);
 
 /**
  * Body Region
@@ -317,7 +317,7 @@ $postscript_regions = array(
       'suffix' => $settings['omega_postscript_four_suffix'])
   ),
 );
-$vars = static_region_builder($postscript_regions, $settings['postscript_container_width'], $vars);
+$vars = static_region_builder($postscript_regions, $vars['postscript_container_width'], $vars);
 
 /**
  * Footer Region

@@ -1,5 +1,6 @@
 <?php
-// $Id: imagecache_customactions.install,v 1.1.2.1 2010/08/12 04:39:26 dman Exp $
+// $Id: imagecache_customactions.install,v 1.1.2.2 2010/12/16 09:36:07 dman Exp $
+
 /**
  * @file Set up new custom actions. Tell imagecache.module about them
  */
@@ -8,11 +9,15 @@
  * Need to flush the cache when this module is enabled or disabled
  */
 function imagecache_customactions_install() {
-  if (function_exists('imagecache_action_definitions') ) imagecache_action_definitions(TRUE);
+  if (function_exists('imagecache_action_definitions') ) {
+    imagecache_action_definitions(TRUE);
+  }
   cache_clear_all('imagecache_actions', 'cache');
   drupal_set_message(t('Additional imagecache actions should now be available in the presets !settings_link', array('!settings_link' => l(t('settings'), 'admin/build/imagecache'))));
 }
-
+/**
+ * hook_uninstall
+ */
 function imagecache_customactions_uninstall() {
   if (function_exists('imagecache_action_definitions') ) imagecache_action_definitions(TRUE);
   cache_clear_all('imagecache_actions', 'cache');

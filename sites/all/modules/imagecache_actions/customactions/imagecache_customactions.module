@@ -1,5 +1,5 @@
 <?php
-// $Id: imagecache_customactions.module,v 1.1.2.1 2010/08/12 04:39:26 dman Exp $
+// $Id: imagecache_customactions.module,v 1.1.2.3 2010/12/16 02:56:46 dman Exp $
 
 /**
  * @file Allow advanced users to code their own PHP image manipulation routines
@@ -183,13 +183,13 @@ function imagecache_subroutine_form($action) {
   // List available presets
   $presets = array();
   foreach (imagecache_presets(TRUE) as $preset) {
-    $presets[$preset['presetid']] = $preset['presetname'];
+    $presets[$preset['presetname']] = $preset['presetname'];
   }
 
-  $form['presetid'] = array(
+  $form['subroutine_presetname'] = array(
     '#type' => 'select',
     '#title' => t('Preset to call'),
-    '#default_value' => $action['presetid'],
+    '#default_value' => $action['subroutine_presetname'],
     '#options' => $presets,
   );
 
@@ -207,7 +207,7 @@ function imagecache_subroutine_form($action) {
  * @param $action
  */
 function imagecache_subroutine_image(&$image, $data) {
-  if ($preset = imagecache_preset($data['presetid'])) {
+  if ($preset = imagecache_preset_by_name($data['subroutine_presetname'])) {
     foreach ($preset['actions'] as $sub_action) {
       _imagecache_apply_action($sub_action, $image);
     }
@@ -221,7 +221,7 @@ function imagecache_subroutine_image(&$image, $data) {
  */
 function theme_imagecache_subroutine($element) {
   $data = $element['#value'];
-  if ($preset = imagecache_preset($data['presetid'])) {
+  if ($preset = imagecache_preset_by_name($data['subroutine_presetname'])) {
     return t('%name (pid: !presetid)', array('%name' => $preset['presetname'], '!presetid' => $preset['presetid']));
   }
   return t('<span class="error">Invalid reference. The referenced preset may have been deleted!</span>');

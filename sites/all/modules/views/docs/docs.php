@@ -1,5 +1,5 @@
 <?php
-// $Id: docs.php,v 1.13.2.7 2010/10/12 23:20:32 merlinofchaos Exp $
+// $Id: docs.php,v 1.13.2.10 2010/12/17 21:13:30 merlinofchaos Exp $
 /**
  * @file
  * This file contains no working PHP code; it exists to provide additional documentation
@@ -179,6 +179,8 @@ function hook_views_data() {
       'handler' => 'views_handler_filter_boolean_operator',
       'label' => t('Published'),
       'type' => 'yes-no',
+      // use boolean_field = 1 instead of boolean_field <> 0 in WHERE statment
+      'use equal' => TRUE,
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -278,6 +280,9 @@ function hook_views_handlers() {
  *   - path: (optional) If includes are stored somewhere other than within
  *       the root module directory or a subdirectory called includes, specify
  *       its path here.
+ *   - template path: (optional) A path where the module has stored it's views template files.
+ *        When you have specificed this key views automatically uses the template files for the views.
+ *        You can use the same naming conventions like for normal views template files.
  */
 function hook_views_api() {
   return array(
@@ -593,6 +598,17 @@ function hook_views_pre_build(&$view) {
 }
 
 /**
+ * This hook is called right after the build process. The query is
+ * now fully built, but it has not yet been run through db_rewrite_sql.
+ *
+ * Adding output to the view can be accomplished by placing text on
+ * $view->attachment_before and $view->attachment_after.
+ */
+function hook_views_post_build(&$view) {
+  // example code here
+}
+
+/**
  * This hook is called right before the execute process. The query is
  * now fully built, but it has not yet been run through db_rewrite_sql.
  *
@@ -600,6 +616,19 @@ function hook_views_pre_build(&$view) {
  * $view->attachment_before and $view->attachment_after.
  */
 function hook_views_pre_execute(&$view) {
+  // example code here
+}
+
+/**
+ * This hook is called right after the execute process. The query has
+ * been executed, but the pre_render() phase has not yet happened for
+ * handlers.
+ *
+ * Adding output to the view can be accomplished by placing text on
+ * $view->attachment_before and $view->attachment_after. Altering the
+ * content can be achieved by editing the items of $view->result.
+ */
+function hook_views_post_execute(&$view) {
   // example code here
 }
 

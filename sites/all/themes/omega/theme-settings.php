@@ -1,5 +1,5 @@
 <?php
-// $Id: theme-settings.php,v 1.8.2.10 2010/07/11 15:07:42 himerus Exp $
+// $Id: theme-settings.php,v 1.8.2.11 2010/11/16 14:39:39 himerus Exp $
 
 // require_once for the functions that need to be available when we are outside
 // of the omega theme in the administrative interface
@@ -245,7 +245,7 @@ function omega_settings($saved_settings, $subtheme_defaults = array()) {
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
     );
-    $default_omega_layout = $saved_settings['omega_fixed_fluid'] ? $saved_settings['omega_fixed_fluid'] : 'fixed';
+    $default_omega_layout = !empty($saved_settings['omega_fixed_fluid']) ? $saved_settings['omega_fixed_fluid'] : 'fixed';
       $form['omega_container']['omega_regions']['omega_fixed_fluid'] = array(
           '#type'          => 'radios',
           '#description'   => t('You may select fluid layout, or the default fixed width layout.'),

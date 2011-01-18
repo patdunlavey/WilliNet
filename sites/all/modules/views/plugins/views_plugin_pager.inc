@@ -8,7 +8,6 @@
  */
 class views_plugin_pager extends views_plugin {
   var $current_page = NULL;
-  var $use_pager = NULL;
   var $total_items = 0;
 
   /**
@@ -60,23 +59,6 @@ class views_plugin_pager extends views_plugin {
    */
   function set_offset($offset) {
     $this->options['offset'] = $offset;
-  }
-
-  /**
-   * Set the pager usage.
-   *
-   * @param $use_pager
-   *   Boolean value to force to use a pager or not.
-   */
-  function set_use_pager($use_pager) {
-    $this->use_pager = $use_pager;
-  }
-
-  /**
-   * Get the pager usage.
-   */
-  function get_use_pager() {
-    return $this->use_pager;
   }
 
   /**
@@ -139,9 +121,6 @@ class views_plugin_pager extends views_plugin {
    * Only a couple of very specific pagers will set this to false.
    */
   function use_pager() {
-    if (isset($this->use_pager)) {
-      return $this->use_pager;
-    }
     return TRUE;
   }
 

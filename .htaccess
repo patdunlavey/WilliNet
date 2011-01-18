@@ -100,11 +100,11 @@ DirectoryIndex index.php
   # VirtualDocumentRoot and the rewrite rules are not working properly.
   # For example if your site is at http://example.com/drupal uncomment and
   # modify the following line:
-# RewriteBase /~willinet/
-  
+  # RewriteBase /drupal
+  #
   # If your site is running in a VirtualDocumentRoot at http://example.com/,
   # uncomment the following line:
-  #  RewriteBase /
+  # RewriteBase /
 
   # Rewrite URLs of the form 'x' to the form 'index.php?q=x'.
   RewriteCond %{REQUEST_FILENAME} !-f

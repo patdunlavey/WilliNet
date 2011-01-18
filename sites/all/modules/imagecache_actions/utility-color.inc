@@ -1,5 +1,5 @@
 <?php
-// $Id: utility-color.inc,v 1.1.2.1 2010/07/20 00:44:25 dman Exp $
+// $Id: utility-color.inc,v 1.1.2.2 2010/12/16 09:36:07 dman Exp $
 /**
  * @file Utility functions for color widgets
  */
@@ -8,7 +8,7 @@
  * Prepare a subform for displaying RGB fields
  *
  * Helper function to render a common element.
- * 
+ *
  * Note that any module that re-uses this form also has to declare the theme
  * function in order to ensure it's in the registry.
  */
@@ -18,9 +18,14 @@ function imagecache_rgb_form($action) {
     $action['HEX'] = ltrim($action['HEX'], '#');
     // With or without # is valid, but trim for consistancy
   }
-  $form = array('#theme' => 'imagecacheactions_rgb_form'); 
+  $form = array('#theme' => 'imagecacheactions_rgb_form');
   $form['farb'] = array('#weight' => -1); // Placeholder to get its weight right
-  $form['HEX'] = array( '#type' => 'textfield', '#title' => t('HEX'), '#default_value' => $action['HEX'], '#size' => 7);
+  $form['HEX'] = array(
+    '#type' => 'textfield',
+    '#title' => t('HEX'),
+    '#default_value' => $action['HEX'],
+    '#size' => 7,
+  );
 
   return $form;
 }
@@ -35,7 +40,10 @@ function theme_imagecacheactions_rgb_form(&$form) {
   //  drupal_add_js(drupal_get_path('module', 'imagecache_coloractions') . '/color.js');
 
   $hex_id = $form['HEX']['#id'];
-  $form['farb'] = array('#value' => "<div id=\"$hex_id-farb\" style=\"float:right\"></div>", '#weight' => -1 );
+  $form['farb'] = array(
+    '#value' => "<div id=\"$hex_id-farb\" style=\"float:right\"></div>",
+    '#weight' => -1,
+  );
 
   // Adds the JS that binds the textarea with the farb element
   $js = "
@@ -72,36 +80,38 @@ function theme_imagecacheactions_rgb($rgb) {
     return " <span style=\"width:2em; border:1px solid white; background-color:#{$rgb['HEX']}\" >&nbsp;#{$rgb['HEX']}&nbsp;</span>";
   }
   else {
-    return ' '. t('Transparent');
+    return ' ' . t('Transparent');
   }
 }
 
 
 
- /**
+/**
  * Decode an HTML hex-code into an array of R, G, and B values.
  * accepts these formats: (case insensitive) #ffffff, ffffff, #fff, fff
  */
 function hex_to_rgb($hex) {
   $hex = trim($hex);
   // remove '#'
-  if (substr($hex, 0, 1) == '#')
-    $hex = substr($hex, 1) ;
+  if (substr($hex, 0, 1) == '#') {
+    $hex = substr($hex, 1);
+  }
 
   // expand short form ('fff') color
   if (strlen($hex) == 3) {
     $hex = substr($hex, 0, 1) . substr($hex, 0, 1) .
            substr($hex, 1, 1) . substr($hex, 1, 1) .
-           substr($hex, 2, 1) . substr($hex, 2, 1) ;
+           substr($hex, 2, 1) . substr($hex, 2, 1);
   }
 
-  if (strlen($hex) != 6)
-    trigger_error('Error: Invalid color "'. $hex .'"') ;
+  if (strlen($hex) != 6) {
+    trigger_error('Error: Invalid color "' . $hex . '"');
+  }
 
   // convert
-  $rgb['red'] = hexdec(substr($hex, 0, 2)) ;
-  $rgb['green'] = hexdec(substr($hex, 2, 2)) ;
-  $rgb['blue'] = hexdec(substr($hex, 4, 2)) ;
+  $rgb['red'] = hexdec(substr($hex, 0, 2));
+  $rgb['green'] = hexdec(substr($hex, 2, 2));
+  $rgb['blue'] = hexdec(substr($hex, 4, 2));
 
-  return $rgb ;
+  return $rgb;
 }

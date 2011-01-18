@@ -1,5 +1,5 @@
 <?php
-// $Id: views_bulk_operations_plugin_style.inc,v 1.1.2.60 2010/08/29 23:55:00 kratib Exp $
+// $Id: views_bulk_operations_plugin_style.inc,v 1.1.2.61 2010/12/13 01:14:26 kratib Exp $
 
 class views_bulk_operations_plugin_style extends views_plugin_style_table {
 
@@ -147,6 +147,7 @@ class views_bulk_operations_plugin_style extends views_plugin_style_table {
   function get_selected_operations() {
     $selected = array();
     foreach (array_filter($this->options['selected_operations']) as $key) {
+      if (!isset($this->all_operations[$key])) continue;
       if (module_exists('actions_permissions')) {
         $perm = actions_permissions_get_perm($this->all_operations[$key]['label'], $this->all_operations[$key]['callback']);
         if (!user_access($perm)) continue;
@@ -154,9 +155,7 @@ class views_bulk_operations_plugin_style extends views_plugin_style_table {
       if (!empty($this->all_operations[$key]['permissions'])) foreach ($this->all_operations[$key]['permissions'] as $perm) {
         if (!user_access($perm)) continue 2;
       }
-      if (isset($this->all_operations[$key])) {
-        $selected[$key] = $this->all_operations[$key]['label'];
-      }
+      $selected[$key] = $this->all_operations[$key]['label'];
     }
     return $selected;
   }
