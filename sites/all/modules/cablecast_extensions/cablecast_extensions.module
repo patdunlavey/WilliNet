@@ -29,9 +29,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 function cablecast_extensions_menu() {
-    $items = array();
+	$items = array();
 
-    $items['admin/settings/cablecast/login'] = array(
+	$items['admin/settings/cablecast/login'] = array(
         'title' => 'Cablecast Login',
         'description' => 'Setup Cablecast Login.',
         'page callback' => 'drupal_get_form',
@@ -39,139 +39,157 @@ function cablecast_extensions_menu() {
         'access arguments' => array('administer site configuration'),
         'type' => MENU_CALLBACK,
         'file' => 'cablecast_extensions.admin.inc',
-    );
-    $items['schedule/municipal-meetings'] = array(
+	);
+	$items['schedule/municipal-meetings'] = array(
         'title'  =>  'Schedule of upcoming live municipal meetings',
         'description'  =>  'Displays a schedule of upcoming municipal meetings',
         'page callback'  =>  'cablecast_extensions_municipal_meeting_schedule_page',
         'access arguments'  =>  array('access content'),
         'type'  =>  MENU_CALLBACK,
-    );
+	);
 
-    $items['online/municipal-meetings'] = array(
+	$items['online/municipal-meetings'] = array(
         'title'  =>  'Municipal Meetings Online',
         'description'  =>  'Displays a list of previously recorded municipal meetings available online',
         'page callback'  =>  'cablecast_extensions_municipal_meetings_online_page',
         'access arguments'  =>  array('access content'),
         'type'  =>  MENU_CALLBACK,
-    );
+	);
 
-    $items['schedule'] = array(
+	$items['schedule'] = array(
         'title'  =>  'TV Schedule',
         'description'  =>  'Displays a TV Schedule for given cablecast_channel',
         'page callback'  =>  'cablecast_extensions_schedule_page',
         'access arguments'  =>  array('access content'),
         'type'  =>  MENU_CALLBACK,
-    );
-    $items['search/shows'] = array(
+	);
+	$items['search/shows'] = array(
         'title'  =>  'Search Shows Results',
         'description'  =>  'Displays results of a show search',
         'page callback'  =>  'cablecast_extensions_search_results_page',
         'access arguments'  =>  array('access content'),
         'type'  =>  MENU_CALLBACK,
-    );
-    return $items;
+	);
+	return $items;
 }
 
 function cablecast_extensions_form(&$node, $form_state) {
-    dpm($node);
+	dpm($node);
 }
 
 function cablecast_extensions_search_form_submit($form, &$form_state) {
-    $arguments = array();
-    $arguments[] = $_POST['search_text'] ? str_replace(' ','_',$_POST['search_text']) : '%';
-    $arguments[] = $_POST['category'] ? $_POST['category'] : 0;
-    $arguments[] = $_POST['date']['date'] ? str_replace('/', '-',$_POST['date']['date']) : '%';
-    $arguments[] = $_POST['date_compare'] ? $_POST['date_compare'] : 'gt';
-    $goto_path = 'search/shows/'.implode('/',$arguments);
-    drupal_goto($goto_path);
+	$arguments = array();
+	$arguments[] = $_POST['search_text'] ? str_replace(' ','_',$_POST['search_text']) : '%';
+	$arguments[] = $_POST['category'] ? $_POST['category'] : 0;
+	$arguments[] = $_POST['date']['date'] ? str_replace('/', '-',$_POST['date']['date']) : '%';
+	$arguments[] = $_POST['date_compare'] ? $_POST['date_compare'] : 'gt';
+	$goto_path = 'search/shows/'.implode('/',$arguments);
+	drupal_goto($goto_path);
 }
 /**
  * Implementation of hook_theme().
  */
 function cablecast_extensions_theme() {
-    return array(
-        'cablecast_extensions_schedule' => array(
-            'arguments' => array('schedule' => NULL),
-    ),
-    );
+	return array(
+    'cablecast_extensions_schedule' => array(
+    'arguments' => array('schedule' => NULL),
+	),
+    'cablecast_project_shows' => array(
+    'arguments' => array('node' => NULL),
+    'template' => 'cablecast_project_shows',
+	//    'file' => 'scs_eifl.theme.inc',
+	),
+	);
 }
+
+/**
+ * Prepare for project shows theming
+ */
+function cablecast_extensions_preprocess_cablecast_project_shows(&$variables) {
+	if(is_array($variables['node']->cablecast_shows)) {
+		foreach($variables['node']->cablecast_shows as $key=>$node) {
+			$variables['node']->cablecast_shows[$key]->node = cablecast_extensions_show_node_load($node->nid);
+		}
+	}
+}
+
+
 
 /**
  * Implementation of hook_block().
  */
 function cablecast_extensions_block($op = 'list', $delta = 0, $edit = array()) {
-    //  dpm('op: '.$op .' and delta: '.$delta);
-    switch ($op) {
-        case 'list':
-            $blocks[0]['info'] = t('Today on Cablecast');
-            $blocks[1]['info'] = t('Search Programs on Cablecast');
-            return $blocks;
-        case 'view':
-            $block = array();
-            switch ($delta) {
-                case 0:
-                    $block = _cablecast_extensions_block_now_showing_list();
-                    break;
-                case 1:
-                    $block = cablecast_extensions_search_form_block();
-                    break;
-            }
-            return $block;
-    }
+	//  dpm('op: '.$op .' and delta: '.$delta);
+	switch ($op) {
+		case 'list':
+			$blocks[0]['info'] = t('Today on Cablecast');
+			$blocks[1]['info'] = t('Search Programs on Cablecast');
+			return $blocks;
+		case 'view':
+			$block = array();
+			switch ($delta) {
+				case 0:
+					$block = _cablecast_extensions_block_now_showing_list();
+					break;
+				case 1:
+					$block = cablecast_extensions_search_form_block();
+					break;
+			}
+			return $block;
+	}
 }
 
 function _cablecast_extensions_block_now_showing_list() {
-    $block['content'] = implode(_cablecast_extensions_callback('NowShowingList'));
-    $block['subject'] = t('Today on cablecast_extensions');
-    return $block;
+	$block['content'] = implode(_cablecast_extensions_callback('NowShowingList'));
+	$block['subject'] = t('Today on cablecast_extensions');
+	return $block;
 }
 
 function cablecast_extensions_search_form_block() {
-    $block['subject'] = t('Search Programs on cablecast_extensions');
-    $block['content'] = drupal_get_form('cablecast_extensions_search_form');
-    //  dpm($block);
-    return $block;
+	$block['subject'] = t('Search Programs on cablecast_extensions');
+	$block['content'] = drupal_get_form('cablecast_extensions_search_form');
+	//  dpm($block);
+	return $block;
 }
 
 function cablecast_extensions_search_form(){
-    // set up the options lists for categories and date compare
-    $category_options = array ();
-    $params = array('ChannelID' => 1);
-    $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Categories'));
-    $category_select = taxonomy_form($vid);
-    $category_select['#title'] = '';
-    $category_select['#options'][''] = "All Categories";
-    $date_compare_options = array (
+	// set up the options lists for categories and date compare
+	$category_options = array ();
+	$params = array('ChannelID' => 1);
+	$vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Categories'));
+	$category_select = taxonomy_form($vid);
+	$category_select['#title'] = '';
+	$category_select['#options'][''] = "All Categories";
+	$date_compare_options = array (
             'none' => t('(All Dates)'),
   'eq' => t('On'),
   'gt' => t('Since'),
   'lt' => t('Before'),
-    );
-     
-    $form['search_text'] = array(
+	);
+
+	$form['search_text'] = array(
   '#title' => t(''),
   '#type' => 'textfield',
   '#size' =>20,
-    );
-    $form['more_options'] = array(
+	);
+	$form['more_options'] = array(
   '#title' => t('More search options'),
   '#type' => 'fieldset',
   '#collapsible' => TRUE,
     '#collapsed' => TRUE,
-    );
-    $form['more_options']['category'] = $category_select;
-    $form['more_options']['date_compare'] = array (
+	);
+	$form['more_options']['category'] = $category_select;
+	$form['more_options']['date_compare'] = array (
   '#title' => t(''),
   '#type' => 'select',
   '#default_value' => 'none',
   '#options' => $date_compare_options,
-    );
-    $form['submit'] = array(
+	);
+	$form['submit'] = array(
   '#type' => 'submit',
   '#value' => t('Search'),
-    );
-    $form['more_options']['date'] = array(
+	);
+	$form['more_options']['date'] = array(
   '#title' => '',
   '#type' => 'date_popup',
       '#input' => TRUE,
@@ -182,558 +200,558 @@ function cablecast_extensions_search_form(){
       '#date_year_range' => '-3:+3',
       '#process' => array('date_popup_process'),
     '#description' => '',
-    );
-    $form['more_options']['date']['date']['#description'] = '';
-    return $form;
+	);
+	$form['more_options']['date']['date']['#description'] = '';
+	return $form;
 }
 function cablecast_extensions_search_results_page($search_text='', $category=0, $date = '', $date_compare='none')
 {
-    //    dpm(arg());
-    $event_date_str = "2007-10-01T00:00:00Z";
-    $date = str_replace('-','/',$date);
-    if ($search_text == "") {
-        $search_string = "%";
-    } else {
-        $search_string = str_replace('_',' ',$search_text);
-    }
-    if ($category == "") {
-        $category_string = "0";
-    } else {
-        $category_string = $category;
-    }
-    if ($date == "") {
-        $EventDate = "01/01/2007";
-    } else {
-        $EventDate = $date;
-    }
-    if ($date_compare == "none") {
-        $EventDateComparer = ">";
-        $EventDate = "01/01/2007";
-    } else {
-        $EventDateComparer = str_replace('gt', '>', $date_compare);
-        $EventDateComparer = str_replace('lt', '<', $EventDateComparer);
-        $EventDateComparer = str_replace('eq', '=', $EventDateComparer);
-    }
-    $cablecast_extensions = new cablecast_extensions();
-    $params->search_string = $search_string;
-    $params->category = $category_string;
-    $params->dateComparator = $EventDateComparer;
-    $params->date = $EventDate;
-    $params->pager = 20;
+	//    dpm(arg());
+	$event_date_str = "2007-10-01T00:00:00Z";
+	$date = str_replace('-','/',$date);
+	if ($search_text == "") {
+		$search_string = "%";
+	} else {
+		$search_string = str_replace('_',' ',$search_text);
+	}
+	if ($category == "") {
+		$category_string = "0";
+	} else {
+		$category_string = $category;
+	}
+	if ($date == "") {
+		$EventDate = "01/01/2007";
+	} else {
+		$EventDate = $date;
+	}
+	if ($date_compare == "none") {
+		$EventDateComparer = ">";
+		$EventDate = "01/01/2007";
+	} else {
+		$EventDateComparer = str_replace('gt', '>', $date_compare);
+		$EventDateComparer = str_replace('lt', '<', $EventDateComparer);
+		$EventDateComparer = str_replace('eq', '=', $EventDateComparer);
+	}
+	$cablecast_extensions = new cablecast_extensions();
+	$params->search_string = $search_string;
+	$params->category = $category_string;
+	$params->dateComparator = $EventDateComparer;
+	$params->date = $EventDate;
+	$params->pager = 20;
 
-    $shows = $cablecast_extensions->SearchShows($params);
-    $content = "\n<!-- count = " . count($shows) . " -->\n";
-    if ($shows[0]) {
-        $content .= '<table class="cablecast_search_result">';
-        $content .= '<tr><th class="show_link">Title</th><th class="event_time">Date</th><th class="vod_links">Online</th></tr>';
+	$shows = $cablecast_extensions->SearchShows($params);
+	$content = "\n<!-- count = " . count($shows) . " -->\n";
+	if ($shows[0]) {
+		$content .= '<table class="cablecast_search_result">';
+		$content .= '<tr><th class="show_link">Title</th><th class="event_time">Date</th><th class="vod_links">Online</th></tr>';
 
-        for ($i = 0; $i < count($shows); $i++) {
-            $content .= theme('node', $shows[$i]);
-        }
-        $content .= '</table>';
+		for ($i = 0; $i < count($shows); $i++) {
+			$content .= theme('node', $shows[$i]);
+		}
+		$content .= '</table>';
 
-    } else {
-        $content = "There are no shows that match your search ....";
-    }
-    $content .= theme('pager',array(),$params->pager);
-    //    print (theme('page',$content));
+	} else {
+		$content = "There are no shows that match your search ....";
+	}
+	$content .= theme('pager',array(),$params->pager);
+	//    print (theme('page',$content));
 
-    return $content;
-    //show cablecast_extensions_search_results page
-    //    $form_state['redirect'] = 'search/shows';
+	return $content;
+	//show cablecast_extensions_search_results page
+	//    $form_state['redirect'] = 'search/shows';
 }
 
 function cablecast_extensions_municipal_meetings_online_page($project_id = NULL) {
-    $params->category = $project_id ? 0: 53;
-    $params->project_id = $project_id;
-    $params->date = "01/01/2007";
-    $params->dateComparator = ">";
-    $params->search_string = "%";
-    $params->has_vod = TRUE;
-    $params->pager = 20;
-    $shows = _cablecast_extensions_callback('SearchShows', $params);
+	$params->category = $project_id ? 0: 53;
+	$params->project_id = $project_id;
+	$params->date = "01/01/2007";
+	$params->dateComparator = ">";
+	$params->search_string = "%";
+	$params->has_vod = TRUE;
+	$params->pager = 20;
+	$shows = _cablecast_extensions_callback('SearchShows', $params);
 
-    if($params->project_id) {
-        $project_name = db_result(db_query('SELECT n.title FROM {node} n INNER JOIN {cablecast_project} cp on cp.nid = n.nid WHERE cp.cablecast_project_id = "%s"', $params->project_id));
-        drupal_set_title('Online '.$project_name);
-    }
-    if ($shows[0]) {
-        $shows_table_header = array(t("Show"), t("Date"), t("Length"), t("Online"));
-        $shows_table_rows = array();
-        foreach($shows as $show)  {
-            $vodlinks = $show->vod_links ? $show->vod_links : '';
-            $shows_table_rows[] = array(
-            array('data'=> '<a href="/'.$show->path.'">'.check_markup($show->title).'</a>', 'class'=>'show_title'),
-            array('data'=> date('m/d/Y',$show->event_date), 'class'=>'event_date'),
-            array('data'=> (int)($show->trt/60) . ' min', 'class'=>'event_trt'),
-            array('data'=> $vodlinks, 'class'=>'vod_links')
-            );
-             
-        }
-        $content = theme_table($shows_table_header, $shows_table_rows, array('id'=>'cablecast_shows', 'class' => 'cablecast_shows'));
-        $content .= theme('pager',array(), 20);
-    }
-    else
-    {
-        $content .=  "There are no shows that match your search ....";
-    }
-    return $content;
+	if($params->project_id) {
+		$project_name = db_result(db_query('SELECT n.title FROM {node} n INNER JOIN {cablecast_project} cp on cp.nid = n.nid WHERE cp.cablecast_project_id = "%s"', $params->project_id));
+		drupal_set_title('Online '.$project_name);
+	}
+	if ($shows[0]) {
+		$shows_table_header = array(t("Show"), t("Date"), t("Length"), t("Online"));
+		$shows_table_rows = array();
+		foreach($shows as $show)  {
+			$vodlinks = $show->vod_links ? $show->vod_links : '';
+			$shows_table_rows[] = array(
+			array('data'=> '<a href="/'.$show->path.'">'.check_markup($show->title).'</a>', 'class'=>'show_title'),
+			array('data'=> date('m/d/Y',$show->event_date), 'class'=>'event_date'),
+			array('data'=> (int)($show->trt/60) . ' min', 'class'=>'event_trt'),
+			array('data'=> $vodlinks, 'class'=>'vod_links')
+			);
+
+		}
+		$content = theme_table($shows_table_header, $shows_table_rows, array('id'=>'cablecast_shows', 'class' => 'cablecast_shows'));
+		$content .= theme('pager',array(), 20);
+	}
+	else
+	{
+		$content .=  "There are no shows that match your search ....";
+	}
+	return $content;
 }
 
 if (!class_exists("cablecast_extensions")) {
-    class cablecast_extensions {
-        var $server_url;
-        var $client;
-        var $search_results;
-        function cablecast_extensions() { //constructor
-            // init the server url
-            $cablecast_extensions_server_base_url = variable_get('cablecast_server_uri',NULL);
-            if(!$cablecast_extensions_server_base_url) {
-                drupal_set_message('Cablecast server URL needs to be configured!<br><a href="admin/settings/cablecast">Go to the cablecast settings page</a>.','error');
-                return;
-            }
-            $this->server_url = $cablecast_extensions_server_base_url."/CablecastWS/CablecastWS.asmx?WSDL";
-        }
+	class cablecast_extensions {
+		var $server_url;
+		var $client;
+		var $search_results;
+		function cablecast_extensions() { //constructor
+			// init the server url
+			$cablecast_extensions_server_base_url = variable_get('cablecast_server_uri',NULL);
+			if(!$cablecast_extensions_server_base_url) {
+				drupal_set_message('Cablecast server URL needs to be configured!<br><a href="admin/settings/cablecast">Go to the cablecast settings page</a>.','error');
+				return;
+			}
+			$this->server_url = $cablecast_extensions_server_base_url."/CablecastWS/CablecastWS.asmx?WSDL";
+		}
 
-        function server_url() {
-            return $this->server_url;
-        }
+		function server_url() {
+			return $this->server_url;
+		}
 
-        function get_cablecast_client() {
-            $client = new SoapClient($this->server_url);
-            if(cablecast_check_version($client))  {
-                return $client;
-            }
-            else  {
-                watchdog("Cablecast", "Cablecast detected an Cablecast WebService version incompatiable with this module.");
-                return FALSE;
-            }
-        }
+		function get_cablecast_client() {
+			$client = new SoapClient($this->server_url);
+			if(cablecast_check_version($client))  {
+				return $client;
+			}
+			else  {
+				watchdog("Cablecast", "Cablecast detected an Cablecast WebService version incompatiable with this module.");
+				return FALSE;
+			}
+		}
 
-        function getCategories() {
-            $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Categories'));
-            $category_select = taxonomy_form($vid);
-            $result->GetCategoriesResult->Category = array();
-            $i = 0;
-            foreach($category_select['#options'] as $key => $option) {
-                if(is_numeric($key)) {
-                    $result->GetCategoriesResult->Category[$i]->CategoryID = key($option->option);
-                    $result->GetCategoriesResult->Category[$i]->Name = current($option->option);
-                    $i++;
-                }
-            }
-            return $result;
-        }
+		function getCategories() {
+			$vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Categories'));
+			$category_select = taxonomy_form($vid);
+			$result->GetCategoriesResult->Category = array();
+			$i = 0;
+			foreach($category_select['#options'] as $key => $option) {
+				if(is_numeric($key)) {
+					$result->GetCategoriesResult->Category[$i]->CategoryID = key($option->option);
+					$result->GetCategoriesResult->Category[$i]->Name = current($option->option);
+					$i++;
+				}
+			}
+			return $result;
+		}
 
-            function getChannels() {
-            $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Channels'));
-            $channel_select = taxonomy_form($vid);
-            $result->GetChannelsResult->Category = array();
-            $i = 0;
-            foreach($category_select['#options'] as $key => $option) {
-                if(is_numeric($key)) {
-                    $result->GetChannelsResult->Category[$i]->CategoryID = key($option->option);
-                    $result->GetChannelsResult->Category[$i]->Name = current($option->option);
-                    $i++;
-                }
-            }
-            return $result;
-        }
-        
+		function getChannels() {
+			$vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Channels'));
+			$channel_select = taxonomy_form($vid);
+			$result->GetChannelsResult->Category = array();
+			$i = 0;
+			foreach($category_select['#options'] as $key => $option) {
+				if(is_numeric($key)) {
+					$result->GetChannelsResult->Category[$i]->CategoryID = key($option->option);
+					$result->GetChannelsResult->Category[$i]->Name = current($option->option);
+					$i++;
+				}
+			}
+			return $result;
+		}
 
-        function getNowShowingOrNextUp($channelID) {
-            if ($client = $this->client) {
-                try {
-                    //      var_dump($client);
 
-                    //Some funky Time Calculations
-                    $offset = 0;
-                    $padding = 12;
-                    $day = 60*60*24;
-                    $currentDay = date("Y-m-d")."T00:00:00";
-                    $currentDayTime =  date("Y-m-d")."T".date("H:i:s");
-                    $convertedDayTime = strtotime($currentDayTime);
-                    $searchTimestr = $convertedDayTime-$day+($offset * 60 * 60)+($padding * 3600);
-                    $searchTime = date("Y-m-d", $searchTimestr)."T".date("H:i:s", $searchTimestr);
+		function getNowShowingOrNextUp($channelID) {
+			if ($client = $this->client) {
+				try {
+					//      var_dump($client);
 
-                    $channelName = $this->getChannelName($channelID);
-                    $defualtSource = "Could not connect to ".$channelName." cablecast_extensions server";
+					//Some funky Time Calculations
+					$offset = 0;
+					$padding = 12;
+					$day = 60*60*24;
+					$currentDay = date("Y-m-d")."T00:00:00";
+					$currentDayTime =  date("Y-m-d")."T".date("H:i:s");
+					$convertedDayTime = strtotime($currentDayTime);
+					$searchTimestr = $convertedDayTime-$day+($offset * 60 * 60)+($padding * 3600);
+					$searchTime = date("Y-m-d", $searchTimestr)."T".date("H:i:s", $searchTimestr);
 
-                    $result = $client->GetScheduleInformation(array(
+					$channelName = $this->getChannelName($channelID);
+					$defualtSource = "Could not connect to ".$channelName." cablecast_extensions server";
+
+					$result = $client->GetScheduleInformation(array(
         'ChannelID'        => $channelID,
         'FromDate'         => $currentDay,
         'ToDate'           => $searchTime,
         'restrictToShowID' => 0));
-                    //print_r($result);
-                    $resultNumber = count($result['GetScheduleInformationResult']['ScheduleInfo']);
+					//print_r($result);
+					$resultNumber = count($result['GetScheduleInformationResult']['ScheduleInfo']);
 
-                    if($resultNumber == 0)
-                    {
-                        return $defualtSource;
-                    }
+					if($resultNumber == 0)
+					{
+						return $defualtSource;
+					}
 
-                    if($resultNumber == 1)
-                    {
-                        return $defualtSource;
-                    }
+					if($resultNumber == 1)
+					{
+						return $defualtSource;
+					}
 
-                    if($resultNumber > 1)
-                    {
-                        $count = 0;
-                        $beginningTime;
-                        $endingTime;
-                        $nowShowing = $nextUp = 0;
-                        while ($count <= ($resultNumber - 1) && $nowShowing == 0 && $nextUp == 0)
-                        {
-                            $beginningTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$count]['StartTime']);
-                            $endingTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$count]['EndTime']);
+					if($resultNumber > 1)
+					{
+						$count = 0;
+						$beginningTime;
+						$endingTime;
+						$nowShowing = $nextUp = 0;
+						while ($count <= ($resultNumber - 1) && $nowShowing == 0 && $nextUp == 0)
+						{
+							$beginningTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$count]['StartTime']);
+							$endingTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$count]['EndTime']);
 
-                            if(($beginningTime <= ($convertedDayTime + ($offset * 60 * 60))) && ($endingTime > ($convertedDayTime + ($offset * 60 * 60))))
-                            {
-                                $nowShowing = $count;
-                            }
-                            elseif($beginningTime > ($convertedDayTime + ($offset * 60 * 60)))
-                            {
-                                $nextUp = $count;
-                            }
+							if(($beginningTime <= ($convertedDayTime + ($offset * 60 * 60))) && ($endingTime > ($convertedDayTime + ($offset * 60 * 60))))
+							{
+								$nowShowing = $count;
+							}
+							elseif($beginningTime > ($convertedDayTime + ($offset * 60 * 60)))
+							{
+								$nextUp = $count;
+							}
 
-                            $count++;
-                        }
+							$count++;
+						}
 
-                        //if ($nowShowing == '0')
-                        if ($nextUp)
-                        {
-                            //return $defualtSource;
-                            $nextbeginningTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['StartTime']);
-                            $nextendingTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['EndTime']);
-                            return "<div class='nextshowingfield'><span class='label'>Next up on ".$channelName.":</span> ".$result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['ShowTitle'].": ".date("g:iA",$nextbeginningTime). " to ".date("g:iA",$nextendingTime)."</div>";
-                        }
+						//if ($nowShowing == '0')
+						if ($nextUp)
+						{
+							//return $defualtSource;
+							$nextbeginningTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['StartTime']);
+							$nextendingTime = strtotime($result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['EndTime']);
+							return "<div class='nextshowingfield'><span class='label'>Next up on ".$channelName.":</span> ".$result['GetScheduleInformationResult']['ScheduleInfo'][$nextUp]['ShowTitle'].": ".date("g:iA",$nextbeginningTime). " to ".date("g:iA",$nextendingTime)."</div>";
+						}
 
-                        elseif($nowShowing)
-                        {
+						elseif($nowShowing)
+						{
 
-                            return "<div class='nowshowingfield'><span class='label'>Now on ".$channelName.":</span> ".$result['GetScheduleInformationResult']['ScheduleInfo'][$nowShowing]['ShowTitle'].": ".date("g:iA",$beginningTime). " to ".date("g:iA",$endingTime)."</div>";
+							return "<div class='nowshowingfield'><span class='label'>Now on ".$channelName.":</span> ".$result['GetScheduleInformationResult']['ScheduleInfo'][$nowShowing]['ShowTitle'].": ".date("g:iA",$beginningTime). " to ".date("g:iA",$endingTime)."</div>";
 
-                        }
-                        else
-                        {
-                            return $defaultSource;
-                        }
-                    }
-                } catch (SoapFault $fault) {
-                    return;
-                }
-            }
-        }
+						}
+						else
+						{
+							return $defaultSource;
+						}
+					}
+				} catch (SoapFault $fault) {
+					return;
+				}
+			}
+		}
 
-        /* getSchedule
-         * Note that, if using 'now' as the value for $ref, the combined values of
-         * $offset_start and $offset_end should be greater than two or three hours
-         * weird results happen otherwise
-         * $ref can also be a number, in which case it's taken to be an offset in days
-         * from the current date
-         */
-        function getSchedule($ShowID = 0, $channel_tids = array(NULL), $ref = 'today', $offset_start = 0, $offset_end = 12) {
-            //Some funky Time Calculations
-            // for some reason, GetScheduleInformation expects 'ToDate' to be one day before the actual to-date
-            // so 60*60*24 needs to be subtracted, but only from the 'ToDate'
-            $day = 60*60*24;
-            if($ref=='now') { //figure time window relative to right now
-                $currentTime =  _cablecast_extensions_site_time();
-                $startTime = $currentTime-($offset_start * 3660);
-                $endTime = $currentTime+($offset_end * 3600);
-            }
-            elseif (is_numeric($ref)) {
-                $timestamp = _cablecast_extensions_site_time() + ($ref * $day);
-                $startTime = strtotime(date("Y-m-d", $timestamp)."T00:00:00");
-                $endTime = $startTime + $day;
-            }
-            elseif ($timestamp = strtotime($ref)) {
-                $startTime = strtotime(date("Y-m-d", $timestamp)."T00:00:00");
-                $endTime = $startTime + $day;
-            }
-            else
-            { // reference is 'today'
-                $startTime = strtotime(date("Y-m-d")."T00:00:00");
-                $endTime = $startTime + $day;
-            }
-            $schedule = array();
-            if(!isset($channel_tids[0])) {
-                $channel_tids = array();
-                $channel_tids = _cablecast_extensions_get_channels();
-            }
-            foreach($channel_tids as $channel_tid) {
-                $channel_name = db_result(db_query('select name from {term_data} where tid = %d', $channel_tid));
-                if($channel_name); {
-                    $args = array($channel_tid, $startTime, $endTime);
-                    $sql =  'SELECT cs.internalTitle as ShowTitle, cs.nid as show_nid, ce.showID as ShowID, ce.start_time as StartTime, ce.end_time as EndTime, ce.scheduleID FROM {cablecast_schedule_event} ce INNER JOIN {term_node} t ON (ce.nid = t.nid) INNER JOIN {cablecast_show} cs on (cs.showID = ce.showID) '.
+		/* getSchedule
+		 * Note that, if using 'now' as the value for $ref, the combined values of
+		 * $offset_start and $offset_end should be greater than two or three hours
+		 * weird results happen otherwise
+		 * $ref can also be a number, in which case it's taken to be an offset in days
+		 * from the current date
+		 */
+		function getSchedule($ShowID = 0, $channel_tids = array(NULL), $ref = 'today', $offset_start = 0, $offset_end = 12) {
+			//Some funky Time Calculations
+			// for some reason, GetScheduleInformation expects 'ToDate' to be one day before the actual to-date
+			// so 60*60*24 needs to be subtracted, but only from the 'ToDate'
+			$day = 60*60*24;
+			if($ref=='now') { //figure time window relative to right now
+				$currentTime =  _cablecast_extensions_site_time();
+				$startTime = $currentTime-($offset_start * 3660);
+				$endTime = $currentTime+($offset_end * 3600);
+			}
+			elseif (is_numeric($ref)) {
+				$timestamp = _cablecast_extensions_site_time() + ($ref * $day);
+				$startTime = strtotime(date("Y-m-d", $timestamp)."T00:00:00");
+				$endTime = $startTime + $day;
+			}
+			elseif ($timestamp = strtotime($ref)) {
+				$startTime = strtotime(date("Y-m-d", $timestamp)."T00:00:00");
+				$endTime = $startTime + $day;
+			}
+			else
+			{ // reference is 'today'
+				$startTime = strtotime(date("Y-m-d")."T00:00:00");
+				$endTime = $startTime + $day;
+			}
+			$schedule = array();
+			if(!isset($channel_tids[0])) {
+				$channel_tids = array();
+				$channel_tids = _cablecast_extensions_get_channels();
+			}
+			foreach($channel_tids as $channel_tid) {
+				$channel_name = db_result(db_query('select name from {term_data} where tid = %d', $channel_tid));
+				if($channel_name); {
+					$args = array($channel_tid, $startTime, $endTime);
+					$sql =  'SELECT cs.internalTitle as ShowTitle, cs.nid as show_nid, ce.showID as ShowID, ce.start_time as StartTime, ce.end_time as EndTime, ce.scheduleID FROM {cablecast_schedule_event} ce INNER JOIN {term_node} t ON (ce.nid = t.nid) INNER JOIN {cablecast_show} cs on (cs.showID = ce.showID) '.
                             'WHERE ce.cg_exempt = 0 AND t.tid in (%s) AND ce.start_time >= %d AND ce.end_time <= %d';
-                    if(is_numeric($ShowID) && (int)$ShowID > 0) {
-                        $args[] = (int)$ShowID;
-                        $sql .= ' AND ce.showID = %d';
-                    }
-                    $result = db_query($sql,$args );
-                    $count = 0;
-                    $shows = array();
-                    while ($row = db_fetch_object($result)) {
-                        $row->natural_start_time = date("Y-m-d\TH:i:s",$row->StartTime);
-                        $shows[] = $row;
-                    }
-                    if($shows[0] != NULL ) {
-                        $online_show_ids = $this->GetOnlineVideoShowIDs();
-                        $count = count($shows);
-                        $now = _cablecast_extensions_site_time();
-                        for($i = 0; $i < $count; $i++) {
-                            if(isset($online_show_ids[$shows[$i]->ShowID])) {
-                                $shows[$i]->NodeID = $online_show_ids[$shows[$i]->ShowID];
-                            }
-                            $shows[$i]->node = node_load($shows[$i]->show_nid);
-                            $startTimeStamp = $shows[$i]->StartTime;
-                            $endTimeStamp = $shows[$i]->EndTime;
-                            // We interpret a show timespan of less than twenty to mean that it's a live broadcast with an unknown ending time.
-                            // If the next show hasn't started yet, we therefore consider the live program to take all the time until the next
-                            // show
-                            if( $now >= $startTimeStamp && $now <= $endTimeStamp )
-                            {
-                                $shows[$i]->tense = "present";
-                            }
-                            elseif( $now >= $startTimeStamp && $endTimeStamp - $startTimeStamp < 20 && isset($shows[$i+1]) && strtotime($shows[$i+1]->StartTime) > $now )
-                            {
-                                $shows[$i]->tense = "present";
-                                $a = strtotime($shows[$i+1]->StartTime)-1;
-                                $shows[$i]->EndTime = date("Y-m-d\TH:i:s", $a);
-                            }
-                            elseif($now >= $endTimeStamp)
-                            {
-                                $shows[$i]->tense = "past";
-                            }
-                            else
-                            {
-                                $shows[$i]->tense = "future";
-                            }
-                            $shows[$i]->ChannelID = $channel_tid;
-                            $shows[$i]->ChannelName = $channel_name;
-                        } //foreach show in array
+					if(is_numeric($ShowID) && (int)$ShowID > 0) {
+						$args[] = (int)$ShowID;
+						$sql .= ' AND ce.showID = %d';
+					}
+					$result = db_query($sql,$args );
+					$count = 0;
+					$shows = array();
+					while ($row = db_fetch_object($result)) {
+						$row->natural_start_time = date("Y-m-d\TH:i:s",$row->StartTime);
+						$shows[] = $row;
+					}
+					if($shows[0] != NULL ) {
+						$online_show_ids = $this->GetOnlineVideoShowIDs();
+						$count = count($shows);
+						$now = _cablecast_extensions_site_time();
+						for($i = 0; $i < $count; $i++) {
+							if(isset($online_show_ids[$shows[$i]->ShowID])) {
+								$shows[$i]->NodeID = $online_show_ids[$shows[$i]->ShowID];
+							}
+							$shows[$i]->node = node_load($shows[$i]->show_nid);
+							$startTimeStamp = $shows[$i]->StartTime;
+							$endTimeStamp = $shows[$i]->EndTime;
+							// We interpret a show timespan of less than twenty to mean that it's a live broadcast with an unknown ending time.
+							// If the next show hasn't started yet, we therefore consider the live program to take all the time until the next
+							// show
+							if( $now >= $startTimeStamp && $now <= $endTimeStamp )
+							{
+								$shows[$i]->tense = "present";
+							}
+							elseif( $now >= $startTimeStamp && $endTimeStamp - $startTimeStamp < 20 && isset($shows[$i+1]) && strtotime($shows[$i+1]->StartTime) > $now )
+							{
+								$shows[$i]->tense = "present";
+								$a = strtotime($shows[$i+1]->StartTime)-1;
+								$shows[$i]->EndTime = date("Y-m-d\TH:i:s", $a);
+							}
+							elseif($now >= $endTimeStamp)
+							{
+								$shows[$i]->tense = "past";
+							}
+							else
+							{
+								$shows[$i]->tense = "future";
+							}
+							$shows[$i]->ChannelID = $channel_tid;
+							$shows[$i]->ChannelName = $channel_name;
+						} //foreach show in array
 
-                        $schedule = array_merge($schedule,$shows);
-                    } // if $shows is not null
-                }
-            }
-            //            dpm($schedule);
-            usort($schedule,'_cablecast_extensions_compare_show_time');
-            //            dpm($schedule);
-            return($schedule);
-        } //End function getSchedule
+						$schedule = array_merge($schedule,$shows);
+					} // if $shows is not null
+				}
+			}
+			//            dpm($schedule);
+			usort($schedule,'_cablecast_extensions_compare_show_time');
+			//            dpm($schedule);
+			return($schedule);
+		} //End function getSchedule
 
 
-        /**
-         * SearchShows
-         *
-         * @param $params->search_string
-         * @param $params->category
-         * @param $params->series_id
-         * @param $params->tags
-         * @param $params->dateComparator
-         * @param $params->date
-         * @param $params->has_vod
-         * to use tags, pass in an an array of one or more strings
-         * corresponding to the "Tags" custom cablecast_extensions field
-         */
-        function SearchShows($params)
-        {
-            //            dpm($params);
-            $params->search_string = is_string($params->search_string) ? $params->search_string : "%";
-            $params->category = is_numeric($params->category) ? (int)$params->category : 0;
-            $params->series_id = is_int($params->series_id) ? $params->series_id : 0;
-            $params->dateComparator = html_entity_decode($params->dateComparator);
-            if(! strtotime($params->date)) {
-                $params->date = '01/01/2007';
-            }
-            if($params->dateComparator =="" || $params->dateComparator == NULL) {
-                $params->dateComparator = '>';
-            }
-            if (! is_array($params->tags)) {
-                if (is_string($params->tags)) {
-                    $params->tags = explode(",", $params->tags);
-                    foreach($params->tags as $tag) {
-                        $tag = trim($tag);
-                    }
-                }
-                else {
-                    $params->tags = array();
-                }
-            }
-            $event_date_str = date("Y-m-d\T00:00:00", strtotime($params->date));
-            // searching in both channels just seems to produce duplicates of every show
-            // disabling searching both channels (but keeping the code to do so in case it
-            // turns out to be needed)
-            //		$channels = $client->GetChannels();
-            //      $channels = $channels->GetChannelsResult->Channel;
-            $shows = array();
-            $joins = array();
-            $where_args = array();
-            $wheres = array();
-            // add search string
-            $wheres[] = '`internalTitle` LIKE "%s"';
-            $where_args[] = '%'.$params->search_string.'%';
-            if($params->category > 0) {
-                $joins[] = ' INNER JOIN {term_node} tn on (tn.nid = cs.nid) ';
-                $wheres[] = 'tn.tid = %d';
-                $where_args[] = $params->category;
-            }
-            //TODO enable when schema supports series id
-            if($params->project_id > 0) {
-                $wheres[] = '`project_id` = %d';
-                $where_args[] = $params->project_id;
-            }
-            // enable filtering by whether there is a video node for the show
-            if($params->has_vod) {
-                $joins[] = ' INNER JOIN {content_type_video} vn on (vn.field_show_id_value = cs.showID) ';
-            }
-            if($params->dateComparator && $params->date) {
-                $wheres[] = '`event_date` '.$params->dateComparator.' %d';
-                $where_args[] = strtotime($params->date);
-            }
-            //TODO enable when schema supports tags
-            //      if(is_array($params->tags)) {
-            //      }
+		/**
+		 * SearchShows
+		 *
+		 * @param $params->search_string
+		 * @param $params->category
+		 * @param $params->series_id
+		 * @param $params->tags
+		 * @param $params->dateComparator
+		 * @param $params->date
+		 * @param $params->has_vod
+		 * to use tags, pass in an an array of one or more strings
+		 * corresponding to the "Tags" custom cablecast_extensions field
+		 */
+		function SearchShows($params)
+		{
+			//            dpm($params);
+			$params->search_string = is_string($params->search_string) ? $params->search_string : "%";
+			$params->category = is_numeric($params->category) ? (int)$params->category : 0;
+			$params->series_id = is_int($params->series_id) ? $params->series_id : 0;
+			$params->dateComparator = html_entity_decode($params->dateComparator);
+			if(! strtotime($params->date)) {
+				$params->date = '01/01/2007';
+			}
+			if($params->dateComparator =="" || $params->dateComparator == NULL) {
+				$params->dateComparator = '>';
+			}
+			if (! is_array($params->tags)) {
+				if (is_string($params->tags)) {
+					$params->tags = explode(",", $params->tags);
+					foreach($params->tags as $tag) {
+						$tag = trim($tag);
+					}
+				}
+				else {
+					$params->tags = array();
+				}
+			}
+			$event_date_str = date("Y-m-d\T00:00:00", strtotime($params->date));
+			// searching in both channels just seems to produce duplicates of every show
+			// disabling searching both channels (but keeping the code to do so in case it
+			// turns out to be needed)
+			//		$channels = $client->GetChannels();
+			//      $channels = $channels->GetChannelsResult->Channel;
+			$shows = array();
+			$joins = array();
+			$where_args = array();
+			$wheres = array();
+			// add search string
+			$wheres[] = '`internalTitle` LIKE "%s"';
+			$where_args[] = '%'.$params->search_string.'%';
+			if($params->category > 0) {
+				$joins[] = ' INNER JOIN {term_node} tn on (tn.nid = cs.nid) ';
+				$wheres[] = 'tn.tid = %d';
+				$where_args[] = $params->category;
+			}
+			//TODO enable when schema supports series id
+			if($params->project_id > 0) {
+				$wheres[] = '`project_id` = %d';
+				$where_args[] = $params->project_id;
+			}
+			// enable filtering by whether there is a video node for the show
+			if($params->has_vod) {
+				$joins[] = ' INNER JOIN {content_type_video} vn on (vn.field_show_id_value = cs.showID) ';
+			}
+			if($params->dateComparator && $params->date) {
+				$wheres[] = '`event_date` '.$params->dateComparator.' %d';
+				$where_args[] = strtotime($params->date);
+			}
+			//TODO enable when schema supports tags
+			//      if(is_array($params->tags)) {
+			//      }
 
-            $sql = "SELECT cs.nid".
+			$sql = "SELECT cs.nid".
       " FROM {cablecast_show} cs ".
-            implode(' ',$joins) .
+			implode(' ',$joins) .
       " WHERE ".implode(' and ', $wheres).
       " ORDER BY event_date DESC ";
-            //                  dpm($sql);
-            //                  dpm($where_args);
+			//                  dpm($sql);
+			//                  dpm($where_args);
 
-            //            $result = db_query($sql, $where_args);
-            if($params->pager) {
-                $result = pager_query($sql, $params->pager, 0, NULL, $where_args);
-            }
-            else
-            {
-                $sql .= " LIMIT 0, 50 ";
-                $result = db_query($sql, $where_args);
-            }
-            $shows = array();
-            while ($row = db_fetch_object($result)) {
-                $shows[] = cablecast_extensions_show_node_load($row->nid, NODE_BUILD_SEARCH_RESULT);
-            }
-            //                 dpm($shows);
-            return $shows;
-        }
+			//            $result = db_query($sql, $where_args);
+			if($params->pager) {
+				$result = pager_query($sql, $params->pager, 0, NULL, $where_args);
+			}
+			else
+			{
+				$sql .= " LIMIT 0, 50 ";
+				$result = db_query($sql, $where_args);
+			}
+			$shows = array();
+			while ($row = db_fetch_object($result)) {
+				$shows[] = cablecast_extensions_show_node_load($row->nid, NODE_BUILD_SEARCH_RESULT);
+			}
+			//                 dpm($shows);
+			return $shows;
+		}
 
 
-        /**
-         * NowShowingList
-         * return an html list of the current show and next $timespan hours worth of shows
-         * if there is no program currently showing, say that WilliBoard is currently showing
-         * consider LIVE (ten second) shows to last until next show
-         * default $channelIDs is 1 and 2
-         * default timespan is three hours
-         */
-        function NowShowingList($channels = array(array('id'=> 51, 'title'=>'Channel 17, Culture', 'link' => '/schedule/WilliNet_Channel_17'), array('id'=> 50,'title'=>'Channel 16, Municipal Meetings', 'link' => '/schedule/WilliNet_Channel_16')), $timespan=8, $interstitial_show_title = 'WilliBoard - Community Notices') {
-            // start by just getting all of today's shows
-            $time = _cablecast_extensions_site_time();
-            $endtime = $time + ($timespan * 3660);
-            $lists = array();
-            $online_show_ids = $this->GetOnlineVideoShowIDs();
-            foreach($channels as $channel) {
-                $shows = $this->getSchedule(0, array($channel['id']), 'now',6,$timespan);
-                $count = count($shows);
-                // remove shows that preceed current or most recently shown
-                //                		dpm($shows);
-                for($i = 1; $i < $count && $shows[1]->StartTime <= $time; $i++) {
-                    array_shift($shows);
-                    //			dpm($shows);
-                }
-                $shows = array_slice($shows,0,5);
-                $count = count($shows);
-                // remove shows that start after the timespan
-                for($i = $count-1; $i > 0 && $shows[$i]->StartTime > $endtime; $i--) {
-                    array_pop($shows);
-                }
-                if($shows[0]->tense == 'past') {
-                    $shows[0]->ScheduleID = $shows[0]->ShowID = NULL;
-                    $shows[0]->ShowTitle = $interstitial_show_title;
-                    $endTimeStamp = $shows[1]->StartTime-1;
-                    $startTimeStamp = $shows[0]->EndTime+1;
-                    //                    $shows[0]->StartTime = date("Y-m-d\TH:i:s", $startTimeStamp);
-                    //                    $shows[0]->EndTime = date("Y-m-d\TH:i:s", $endTimeStamp);
-                    $shows[0]->StartTime = $startTimeStamp;
-                    $shows[0]->EndTime = $endTimeStamp;
-                    $shows[0]->tense = 'present';
-                }
-                $list = '<ul id="now-showing_'.$channel['id'].'" class="schedule now-showing"><div class="channel-title">';
-                if (strlen($channel['link'])>2) {
-                    $list .= '<a href="'.$channel['link'].'">'.$channel['title'].'</a></div>';
-                }
-                else
-                {
-                    $list .= $channel['title'].'</div>';
-                }
-                $oddeven = 'odd';
-                foreach($shows as $show) {
-                    if($show->ShowID && isset($online_show_ids[$show->ShowID])) {
-                        $show->NodeID = $online_show_ids[$show->ShowID];
-                    }
-                    $phptime = $show->StartTime;
-                    $beginningTime = date("g:i",$phptime);
-                    $beginningTime .= date("A",$phptime) == 'PM' ? 'P': 'A';
-                    $phptime = $show->EndTime;
-                    $endingTime = date("g:i",$phptime);
-                    $endingTime .= date("A",$phptime) == 'PM' ? 'P': 'A';
-                    if($show->node->path) {
-                    if(isset($show->NodeID) && $show->node->showID) {
-                        $watchonlinemsg = ", watch online,";
-                    }                        
-                    $showTitle = '<a href="/'.$show->node->path.'" title="Ends at '.$endingTime.'. Click to see show details'.$watchonlinemsg.' and see other broadcast times">'.$show->node->title.'</a>';
-                    }
-                    else
-                    {
-                        $showTitle = $show->node->title;
-                    }
+		/**
+		 * NowShowingList
+		 * return an html list of the current show and next $timespan hours worth of shows
+		 * if there is no program currently showing, say that WilliBoard is currently showing
+		 * consider LIVE (ten second) shows to last until next show
+		 * default $channelIDs is 1 and 2
+		 * default timespan is three hours
+		 */
+		function NowShowingList($channels = array(array('id'=> 51, 'title'=>'Channel 17, Culture', 'link' => '/schedule/WilliNet_Channel_17'), array('id'=> 50,'title'=>'Channel 16, Municipal Meetings', 'link' => '/schedule/WilliNet_Channel_16')), $timespan=8, $interstitial_show_title = 'WilliBoard - Community Notices') {
+			// start by just getting all of today's shows
+			$time = _cablecast_extensions_site_time();
+			$endtime = $time + ($timespan * 3660);
+			$lists = array();
+			$online_show_ids = $this->GetOnlineVideoShowIDs();
+			foreach($channels as $channel) {
+				$shows = $this->getSchedule(0, array($channel['id']), 'now',6,$timespan);
+				$count = count($shows);
+				// remove shows that preceed current or most recently shown
+				//                		dpm($shows);
+				for($i = 1; $i < $count && $shows[1]->StartTime <= $time; $i++) {
+					array_shift($shows);
+					//			dpm($shows);
+				}
+				$shows = array_slice($shows,0,5);
+				$count = count($shows);
+				// remove shows that start after the timespan
+				for($i = $count-1; $i > 0 && $shows[$i]->StartTime > $endtime; $i--) {
+					array_pop($shows);
+				}
+				if($shows[0]->tense == 'past') {
+					$shows[0]->ScheduleID = $shows[0]->ShowID = NULL;
+					$shows[0]->ShowTitle = $interstitial_show_title;
+					$endTimeStamp = $shows[1]->StartTime-1;
+					$startTimeStamp = $shows[0]->EndTime+1;
+					//                    $shows[0]->StartTime = date("Y-m-d\TH:i:s", $startTimeStamp);
+					//                    $shows[0]->EndTime = date("Y-m-d\TH:i:s", $endTimeStamp);
+					$shows[0]->StartTime = $startTimeStamp;
+					$shows[0]->EndTime = $endTimeStamp;
+					$shows[0]->tense = 'present';
+				}
+				$list = '<ul id="now-showing_'.$channel['id'].'" class="schedule now-showing"><div class="channel-title">';
+				if (strlen($channel['link'])>2) {
+					$list .= '<a href="'.$channel['link'].'">'.$channel['title'].'</a></div>';
+				}
+				else
+				{
+					$list .= $channel['title'].'</div>';
+				}
+				$oddeven = 'odd';
+				foreach($shows as $show) {
+					if($show->ShowID && isset($online_show_ids[$show->ShowID])) {
+						$show->NodeID = $online_show_ids[$show->ShowID];
+					}
+					$phptime = $show->StartTime;
+					$beginningTime = date("g:i",$phptime);
+					$beginningTime .= date("A",$phptime) == 'PM' ? 'P': 'A';
+					$phptime = $show->EndTime;
+					$endingTime = date("g:i",$phptime);
+					$endingTime .= date("A",$phptime) == 'PM' ? 'P': 'A';
+					if($show->node->path) {
+						if(isset($show->NodeID) && $show->node->showID) {
+							$watchonlinemsg = ", watch online,";
+						}
+						$showTitle = '<a href="/'.$show->node->path.'" title="Ends at '.$endingTime.'. Click to see show details'.$watchonlinemsg.' and see other broadcast times">'.$show->node->title.'</a>';
+					}
+					else
+					{
+						$showTitle = $show->node->title;
+					}
 
-                    $list .= '<li class="'.$show->tense.' '.$oddeven.'">';
-                    $list .= '<ul class = "NowShowingItem Channel_'.$show->ChannelID.'">';
-                    if($show->tense == 'present') {
-                        $list .= '<div class="now-showing-notice">Currently Showing:</div>';
-                    } else {
-                        $list .= '<li class = "time">'.$beginningTime.'</li>';
-                    }
-                    if(isset($show->NodeID) && $show->node->showID) {
-                        $showTitle .= '&nbsp;<img class="vod14icon" src="/sites/default/files/images/vod14.png" border="0">';
-                    }
+					$list .= '<li class="'.$show->tense.' '.$oddeven.'">';
+					$list .= '<ul class = "NowShowingItem Channel_'.$show->ChannelID.'">';
+					if($show->tense == 'present') {
+						$list .= '<div class="now-showing-notice">Currently Showing:</div>';
+					} else {
+						$list .= '<li class = "time">'.$beginningTime.'</li>';
+					}
+					if(isset($show->NodeID) && $show->node->showID) {
+						$showTitle .= '&nbsp;<img class="vod14icon" src="/sites/default/files/images/vod14.png" border="0">';
+					}
 
-                    $list .= '<li class = "title">'.$showTitle;
-                    $list .= '</li>';
-                    $list .= '</ul></li>';
-                    $oddeven = $oddeven == 'odd' ? 'even' : 'odd'  ;
-                }
-                $list .= '</ul>';
-                $lists[] = $list;
-            }
-            return $lists;
+					$list .= '<li class = "title">'.$showTitle;
+					$list .= '</li>';
+					$list .= '</ul></li>';
+					$oddeven = $oddeven == 'odd' ? 'even' : 'odd'  ;
+				}
+				$list .= '</ul>';
+				$lists[] = $list;
+			}
+			return $lists;
 
-        } // End Functon NowShowingList
+		} // End Functon NowShowingList
 
-        function getShowInformation($show_id) {
-            $result = db_fetch_array(db_query('select * from {cablecast_show} where showID = %d', $show_id));
-            //        dpm($result);
-            return $result;
-        }
+		function getShowInformation($show_id) {
+			$result = db_fetch_array(db_query('select * from {cablecast_show} where showID = %d', $show_id));
+			//        dpm($result);
+			return $result;
+		}
 
-        function updateProjectIDforShow($show_id, $project_id) {
-            $username = variable_get('cablecast_server_username', NULL);
-            $password = variable_get('cablecast_server_password', NULL);
-            if(($username && $password) && ($cablecast_client = $this->get_cablecast_client())) {
-                $showInfo = $cablecast_client->GetShowInformation($show_id);
-                $showInfo = $showInfo->GetShowInformationResult;
-                $params = array("ShowID" => $showInfo->ShowID,
+		function updateProjectIDforShow($show_id, $project_id) {
+			$username = variable_get('cablecast_server_username', NULL);
+			$password = variable_get('cablecast_server_password', NULL);
+			if(($username && $password) && ($cablecast_client = $this->get_cablecast_client())) {
+				$showInfo = $cablecast_client->GetShowInformation($show_id);
+				$showInfo = $showInfo->GetShowInformationResult;
+				$params = array("ShowID" => $showInfo->ShowID,
                     "LocalID" => '22',
                     "Title" => $showInfo->InternalTitle,
                     "CGTitle" => 'CGTitle',
-                //                    "CGTitle" => $showInfo->Title,
+				//                    "CGTitle" => $showInfo->Title,
                     "ProjectID" => $project_id,
                     "CGExempt" => $showInfo->CGExempt,
                     "ProducerID" => $showInfo->ProducerID,
@@ -741,7 +759,7 @@ if (!class_exists("cablecast_extensions")) {
                     "EventDate" => strtotime($showInfo->EventDate),
                     "Comments" => $showInfo->Comments,
                     "CustomFields" => array(),
-                //"CustomFields" => get_object_vars($showInfo->CustomFields),
+				//"CustomFields" => get_object_vars($showInfo->CustomFields),
                     "OnDemand" => $showInfo->OnDemand,
                     "OnDemandStatus" => $showInfo->OnDemandStatus,
                     "BugText" => $showInfo->BugText,
@@ -749,30 +767,30 @@ if (!class_exists("cablecast_extensions")) {
                     "CrawlLengthInSeconds" => $showInfo->CrawlLengthInSeconds,
                     "username" => $username,
                     "password" => $password,
-                );
+				);
 
 
-                //                $showInfo = get_object_vars($showInfo);
+				//                $showInfo = get_object_vars($showInfo);
 
-                //                dpm($params);
-                try {
-                    return $cablecast_client->UpdateShowRecord($params);
-                }
-                catch(SoapFault $fault)  {
-                    watchdog("Cablecast", "Communicating to server caused the following error: ".$fault->faultstring);
-                    //                    dpm($fault->faultstring);
-                }
-            }
-            else {
-                return FALSE;
-            }
-        }
+				//                dpm($params);
+				try {
+					return $cablecast_client->UpdateShowRecord($params);
+				}
+				catch(SoapFault $fault)  {
+					watchdog("Cablecast", "Communicating to server caused the following error: ".$fault->faultstring);
+					//                    dpm($fault->faultstring);
+				}
+			}
+			else {
+				return FALSE;
+			}
+		}
 
-        function UpdateProjectIDsForMatchingShows($searchString, $newProjectID, $restrictToProjectID = 0) {
-            $username = variable_get('cablecast_server_username', NULL);
-            $password = variable_get('cablecast_server_password', NULL);
-            if(($username && $password) && ($cablecast_client = $this->get_cablecast_client())) {
-                $params = array(
+		function UpdateProjectIDsForMatchingShows($searchString, $newProjectID, $restrictToProjectID = 0) {
+			$username = variable_get('cablecast_server_username', NULL);
+			$password = variable_get('cablecast_server_password', NULL);
+			if(($username && $password) && ($cablecast_client = $this->get_cablecast_client())) {
+				$params = array(
                 "ChannelID" => 0,
                 "searchString" => $searchString,
                 "eventDate" => '',
@@ -782,18 +800,18 @@ if (!class_exists("cablecast_extensions")) {
                 "restrictToProjectID" => $restrictToProjectID,
                 "displayStreamingShowsOnly" => FALSE,
                 "searchOtherSites" => FALSE,
-                );
-                try {
-                    $updateShowRecordResponse = array();
-                    $result = $cablecast_client->AdvancedCGExemptShowSearch($params);
-                    $shows = is_array($result->AdvancedCGExemptShowSearchResult->SiteSearchResult) ? $result->AdvancedCGExemptShowSearchResult->SiteSearchResult : array($result->AdvancedCGExemptShowSearchResult->SiteSearchResult);
-                    foreach($shows as $showInfo) {
-                        //                        dpm($showInfo);
-                        $params = array("ShowID" => $showInfo->ShowID,
+				);
+				try {
+					$updateShowRecordResponse = array();
+					$result = $cablecast_client->AdvancedCGExemptShowSearch($params);
+					$shows = is_array($result->AdvancedCGExemptShowSearchResult->SiteSearchResult) ? $result->AdvancedCGExemptShowSearchResult->SiteSearchResult : array($result->AdvancedCGExemptShowSearchResult->SiteSearchResult);
+					foreach($shows as $showInfo) {
+						//                        dpm($showInfo);
+						$params = array("ShowID" => $showInfo->ShowID,
                         "LocalID" => '22',
                         "Title" => $showInfo->InternalTitle,
                         "CGTitle" => 'CGTitle',
-                        //                    "CGTitle" => $showInfo->Title,
+						//                    "CGTitle" => $showInfo->Title,
                         "ProjectID" => $newProjectID,
                         "CGExempt" => $showInfo->CGExempt,
                         "ProducerID" => $showInfo->ProducerID,
@@ -801,7 +819,7 @@ if (!class_exists("cablecast_extensions")) {
                         "EventDate" => strtotime($showInfo->EventDate),
                         "Comments" => $showInfo->Comments,
                         "CustomFields" => array(),
-                        //"CustomFields" => get_object_vars($showInfo->CustomFields),
+						//"CustomFields" => get_object_vars($showInfo->CustomFields),
                         "OnDemand" => $showInfo->OnDemand,
                         "OnDemandStatus" => $showInfo->OnDemandStatus,
                         "BugText" => $showInfo->BugText,
@@ -809,111 +827,111 @@ if (!class_exists("cablecast_extensions")) {
                         "CrawlLengthInSeconds" => $showInfo->CrawlLengthInSeconds,
                         "username" => $username,
                         "password" => $password,
-                        );
-                        //$updateShowRecordResponse[$showInfo->ShowID] = $cablecast_client->UpdateShowRecord($params);
-                    }
-                    //                    dpm($updateShowRecordResponse);
-                    return $updateShowRecordResponse;
+						);
+						//$updateShowRecordResponse[$showInfo->ShowID] = $cablecast_client->UpdateShowRecord($params);
+					}
+					//                    dpm($updateShowRecordResponse);
+					return $updateShowRecordResponse;
 
-                }
-                catch(SoapFault $fault) {
-                    watchdog("Cablecast", "Communicating to server caused the following error: ".$fault->faultstring);
-                    //                    dpm($fault->faultstring);
-                }
-            }
-            else {
-                return FALSE;
-            }
-        }
+				}
+				catch(SoapFault $fault) {
+					watchdog("Cablecast", "Communicating to server caused the following error: ".$fault->faultstring);
+					//                    dpm($fault->faultstring);
+				}
+			}
+			else {
+				return FALSE;
+			}
+		}
 
 
-        /**
-         * GetScheduleByCategory
-         * cablecast_extensions doesn't provide this function, so we need to first get a list of shows
-         * in the category, and then get the schedules for each of them
-         * Ugh!
-         */
-        function GetLiveMeetingSchedule($days = 1) {
-            // there seems to be no way to get the live meeting show ids programmatically
-            if ($client = $this->client) {
-                try {
-                    $day = 60*60*24;
-                    $startTime = date("Y-m-d", _cablecast_extensions_site_time())."T00:00:00";
-                    $timestamp = _cablecast_extensions_site_time() + ($days -1) * $day;
-                    $searchTime = date("Y-m-d\TH:i:s", $timestamp);
-                    $shows = array();
-                    $showIDs = array(141=>2,153=>2,164=>2,190=>2,217=>2,254=>1,377=>2);
-                    foreach($showIDs as $showID => $channelID) {
-                        $params = array(
+		/**
+		 * GetScheduleByCategory
+		 * cablecast_extensions doesn't provide this function, so we need to first get a list of shows
+		 * in the category, and then get the schedules for each of them
+		 * Ugh!
+		 */
+		function GetLiveMeetingSchedule($days = 1) {
+			// there seems to be no way to get the live meeting show ids programmatically
+			if ($client = $this->client) {
+				try {
+					$day = 60*60*24;
+					$startTime = date("Y-m-d", _cablecast_extensions_site_time())."T00:00:00";
+					$timestamp = _cablecast_extensions_site_time() + ($days -1) * $day;
+					$searchTime = date("Y-m-d\TH:i:s", $timestamp);
+					$shows = array();
+					$showIDs = array(141=>2,153=>2,164=>2,190=>2,217=>2,254=>1,377=>2);
+					foreach($showIDs as $showID => $channelID) {
+						$params = array(
           'ChannelID'        => $channelID,
           'FromDate'         => $startTime,
           'ToDate'           => $searchTime,
           'restrictToShowID' => $showID,
-                        );
-                        $result = $this->client->GetScheduleInformation($params);
-                        if(is_array($result->GetScheduleInformationResult->ScheduleInfo)) {
-                            foreach ($result->GetScheduleInformationResult->ScheduleInfo as $info) {
-                                $info->ChannelID = $channelID;
-                            }
-                            $shows = array_merge($shows, $result->GetScheduleInformationResult->ScheduleInfo);
-                        }
-                        elseif (is_object($result->GetScheduleInformationResult->ScheduleInfo)) {
-                            $result->GetScheduleInformationResult->ScheduleInfo->ChannelID = $channelID;
-                            $shows[] = $result->GetScheduleInformationResult->ScheduleInfo;
-                        }
-                         
-                    }
-                    usort($shows,'_cablecast_extensions_compare_show_time');
-                    return($shows);
-                } catch (SoapFault $fault) {
-                    return;
-                }
-            }
-        }
+						);
+						$result = $this->client->GetScheduleInformation($params);
+						if(is_array($result->GetScheduleInformationResult->ScheduleInfo)) {
+							foreach ($result->GetScheduleInformationResult->ScheduleInfo as $info) {
+								$info->ChannelID = $channelID;
+							}
+							$shows = array_merge($shows, $result->GetScheduleInformationResult->ScheduleInfo);
+						}
+						elseif (is_object($result->GetScheduleInformationResult->ScheduleInfo)) {
+							$result->GetScheduleInformationResult->ScheduleInfo->ChannelID = $channelID;
+							$shows[] = $result->GetScheduleInformationResult->ScheduleInfo;
+						}
 
-        /** GetOnlineVideoShowIDs
-         *
-         */
-        function GetOnlineVideoShowIDs() {
-            $sql = ' SELECT field_show_id_value AS ShowID, nid as NodeID FROM {content_type_video} WHERE field_show_id_value IS NOT NULL';
-            $result = db_query($sql);
-            $ids = array();
-            while ($row = db_fetch_object($result)) {
-                $ids[$row->ShowID] = $row->NodeID;
-            }
-            return $ids;
-        }
+					}
+					usort($shows,'_cablecast_extensions_compare_show_time');
+					return($shows);
+				} catch (SoapFault $fault) {
+					return;
+				}
+			}
+		}
 
-    }//End Class cablecast_extensions
+		/** GetOnlineVideoShowIDs
+		 *
+		 */
+		function GetOnlineVideoShowIDs() {
+			$sql = ' SELECT field_show_id_value AS ShowID, nid as NodeID FROM {content_type_video} WHERE field_show_id_value IS NOT NULL';
+			$result = db_query($sql);
+			$ids = array();
+			while ($row = db_fetch_object($result)) {
+				$ids[$row->ShowID] = $row->NodeID;
+			}
+			return $ids;
+		}
+
+	}//End Class cablecast_extensions
 } // if exists class cablecast_extensions
 
 // sort function for schedule sort after merge
 function _cablecast_extensions_compare_show_time($a,$b) {
-    return $a->StartTime > $b->StartTime ? 1 : -1;
+	return $a->StartTime > $b->StartTime ? 1 : -1;
 }
 
 function _cablecast_extensions_site_time() {
-    $offset = variable_get('date_default_timezone', date('Z')) - date('Z');
-    return time()+$offset;
+	$offset = variable_get('date_default_timezone', date('Z')) - date('Z');
+	return time()+$offset;
 }
 
 function _cablecast_extensions_fix_time($raw_time) {
-    $offset = variable_get('date_default_timezone', date('Z')) - date('Z');
-    return $raw_time - $offset;
+	$offset = variable_get('date_default_timezone', date('Z')) - date('Z');
+	return $raw_time - $offset;
 }
 
 function _cablecast_extensions_is_connected($url)
 {
-    //check to see if the local machine is connected to the web
-    //uses sockets to open a connection to apisonline.com
-    $connected = @fsockopen($url,80);
-    if ($connected){
-        $is_conn = true;
-        fclose($connected);
-    }else{
-        $is_conn = false;
-    }
-    return $is_conn;
+	//check to see if the local machine is connected to the web
+	//uses sockets to open a connection to apisonline.com
+	$connected = @fsockopen($url,80);
+	if ($connected){
+		$is_conn = true;
+		fclose($connected);
+	}else{
+		$is_conn = false;
+	}
+	return $is_conn;
 
 }//end _cablecast_extensions_is_connected function
 
@@ -931,35 +949,35 @@ function _cablecast_extensions_is_connected($url)
  */
 
 function _cablecast_extensions_callback() {
-    $args = func_get_args();
-    $callback = array_shift($args);
-    if($callback) {
-        $cablecast_extensions = new cablecast_extensions();
-        if(count($args) > 0) {
-            //        dpm($args);
-            return call_user_func_array(array($cablecast_extensions, $callback), $args);
-        }
-        else {
-            return call_user_func(array($cablecast_extensions, $callback));
-        }
-    }
+	$args = func_get_args();
+	$callback = array_shift($args);
+	if($callback) {
+		$cablecast_extensions = new cablecast_extensions();
+		if(count($args) > 0) {
+			//        dpm($args);
+			return call_user_func_array(array($cablecast_extensions, $callback), $args);
+		}
+		else {
+			return call_user_func(array($cablecast_extensions, $callback));
+		}
+	}
 }
 
 function _cablecast_extensions_get_channels() {
-        $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Channels'));
-    return taxonomy_get_tree($vid);
+	$vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Channels'));
+	return taxonomy_get_tree($vid);
 }
 
 function cablecast_extensions_channels_form(){
-    // set up the options lists for categories and date compare
-    $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Channels'));
-    $form = taxonomy_form($vid);
-    $form['#title'] = 'Choose a channel';
-    return $form;
+	// set up the options lists for categories and date compare
+	$vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Channels'));
+	$form = taxonomy_form($vid);
+	$form['#title'] = 'Choose a channel';
+	return $form;
 }
 
 function cablecast_extensions_schedule_form(){
-    $form['date'] = array(
+	$form['date'] = array(
   '#title' => 'Choose a date',
   '#type' => 'date_popup',
       '#input' => TRUE,
@@ -971,185 +989,199 @@ function cablecast_extensions_schedule_form(){
       '#process' => array('date_popup_process'),
     '#description' => '',
     '#weight' => -1,
-    );
-    if (arg(2)) {
-        $form['date']['#default_value'] = date('Y-m-d H:i',strtotime(str_replace('-','/',arg(2))));
-    }
-    else
-    {
-        $form['date']['#default_value'] = date('Y-m-d H:i');
-    }
-    $unixdate = strtotime($form['date']['#default_value']);
-    if( $unixdate && date("Ymd",$unixdate) != date("Ymd")) {
-        $form['goto_today'] = array(
+	);
+	if (arg(2)) {
+		$form['date']['#default_value'] = date('Y-m-d H:i',strtotime(str_replace('-','/',arg(2))));
+	}
+	else
+	{
+		$form['date']['#default_value'] = date('Y-m-d H:i');
+	}
+	$unixdate = strtotime($form['date']['#default_value']);
+	if( $unixdate && date("Ymd",$unixdate) != date("Ymd")) {
+		$form['goto_today'] = array(
                 '#title' => 'test markup',
                 '#type' => 'markup',
                 '#value' => '<a href="/schedule/'.arg(1).'">return to today</a>',
                 '#prefix' => '<div class="markup link-wrapper goto-today form-item">',
                 '#suffix' => '</div>',
                 '#weight' => 5,
-        );
-    }
+		);
+	}
 
-    $form['date']['#description'] = '';
-    $form['channel_select'] = cablecast_extensions_channels_form();
-    $form['channel_select']['#weight'] = 0;
-    if (arg(1)) {
-        $name = str_replace('_', ' ', arg(1));
-        $channel = _cablecast_get_taxonomy_term_by_name($name, 'Cablecast Channels');
-        $form['channel_select']['#default_value'] = $channel[0]->tid;
-    }
-    $form['submit'] = array(
+	$form['date']['#description'] = '';
+	$form['channel_select'] = cablecast_extensions_channels_form();
+	$form['channel_select']['#weight'] = 0;
+	if (arg(1)) {
+		$name = str_replace('_', ' ', arg(1));
+		$channel = _cablecast_get_taxonomy_term_by_name($name, 'Cablecast Channels');
+		$form['channel_select']['#default_value'] = $channel[0]->tid;
+	}
+	$form['submit'] = array(
   '#type' => 'submit',
   '#value' => t('Go'),
     '#weight' => 1,
-    );
-    return $form;
+	);
+	return $form;
 }
 function cablecast_extensions_schedule_form_submit($form, &$form_state) {
-    $arguments = array();
-    $term = taxonomy_get_term($_POST['channel_select']);
-    $date = $_POST['date']['date'];
-    $term->name = str_replace(' ', '_', $term->name);
-    $goto_path = 'schedule/'.$term->name;
-    if($date) {
-        $goto_path .= '/'.str_replace('/', '-',$date);
-    }
-    drupal_goto($goto_path);
+	$arguments = array();
+	$term = taxonomy_get_term($_POST['channel_select']);
+	$date = $_POST['date']['date'];
+	$term->name = str_replace(' ', '_', $term->name);
+	$goto_path = 'schedule/'.$term->name;
+	if($date) {
+		$goto_path .= '/'.str_replace('/', '-',$date);
+	}
+	drupal_goto($goto_path);
 }
 
 
 function cablecast_extensions_schedule_page() {
-    $aa = '<div id="schedule-date-channel-form" class="clearfix">'.drupal_get_form('cablecast_extensions_schedule_form').'</div>';
-    $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Channels'));
-    $channels = taxonomy_get_tree($vid);
-    $switch_links = array();
-    if(arg(1))  {
-        $channel_tax = _cablecast_get_taxonomy_term_by_name(str_replace('_', ' ',arg(1)), 'Cablecast Channels');
-        //Get Date directly from query string - Default to today
-        if(arg(2))  {
-            $date = strtotime(str_replace('-', '/',arg(2)));
-        }
-        else
-        {
-            $date = time();
-        }
-        //Table Stuff
-        $schedule_table_header = array(array('data'=>t("Time"),'class'=>'event_time'), t("Program Name"), t("Online"), );
-        $schedule_table_data = array();
-        if($channel_tax[0]->tid) {
-            drupal_set_title('Broadcast schedule for '.str_replace('_', ' ',arg(1)).'<br>'.date("l, F j, Y",$date));
-            $sql = "SELECT ce.nid AS nid FROM {cablecast_schedule_event} ce INNER JOIN {term_node} tn ON (tn.nid = ce.nid) WHERE tn.tid = %d AND start_time >= %d  AND end_time <= %d ORDER BY start_time";
-            $sqlargs = array(
-            $channel_tax[0]->tid,
-            strtotime(date("Y-m-d\T00:00:00",$date)),
-            strtotime(date("Y-m-d\T23:59:59",$date)),
-            );
-            //            $schedule_nids = pager_query($sql,10,0,NULL,$sqlargs);
-            $schedule_nids = db_query($sql,$sqlargs);
-            while($r = db_fetch_array($schedule_nids))  {
-                $node = cablecast_extensions_schedule_event_node_load($r['nid'], NODE_BUILD_SEARCH_RESULT);
-                $schedule_table_data[] = array(
-                array('data'=>date('g:i A',$node->start_time), 'class'=>'event_time'),
-                array('data'=>'<a href="/'.$node->show_node->path.'">'.t($node->title).'</a>', 'class'=>'event_link'),
-                array('data'=>$node->show_node->vod_links, 'class'=>'vod_links'),
-                );
-            }
-            $aa .= theme_table($schedule_table_header, $schedule_table_data, array('id'=>'cablecast_schedule_'.$channel_tax[0]->tid, 'class' => 'cablecast_schedule'));
-        }
-        else
-        {
-            drupal_set_message("There is no channel by the name &quot;".str_replace('_', ' ',arg(1)).'&quot;<br>Please select from one of the available channels below', 'error');
-        }
-    }
-    else {
-        drupal_set_message('Please select from one of the available channels below','warning');
-    }
-    return $aa;
+	$aa = '<div id="schedule-date-channel-form" class="clearfix">'.drupal_get_form('cablecast_extensions_schedule_form').'</div>';
+	$vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'",'Cablecast Channels'));
+	$channels = taxonomy_get_tree($vid);
+	$switch_links = array();
+	if(arg(1))  {
+		$channel_tax = _cablecast_get_taxonomy_term_by_name(str_replace('_', ' ',arg(1)), 'Cablecast Channels');
+		//Get Date directly from query string - Default to today
+		if(arg(2))  {
+			$date = strtotime(str_replace('-', '/',arg(2)));
+		}
+		else
+		{
+			$date = time();
+		}
+		//Table Stuff
+		$schedule_table_header = array(array('data'=>t("Time"),'class'=>'event_time'), t("Program Name"), t("Online"), );
+		$schedule_table_data = array();
+		if($channel_tax[0]->tid) {
+			drupal_set_title('Broadcast schedule for '.str_replace('_', ' ',arg(1)).'<br>'.date("l, F j, Y",$date));
+			$sql = "SELECT ce.nid AS nid FROM {cablecast_schedule_event} ce INNER JOIN {term_node} tn ON (tn.nid = ce.nid) WHERE tn.tid = %d AND start_time >= %d  AND end_time <= %d ORDER BY start_time";
+			$sqlargs = array(
+			$channel_tax[0]->tid,
+			strtotime(date("Y-m-d\T00:00:00",$date)),
+			strtotime(date("Y-m-d\T23:59:59",$date)),
+			);
+			//            $schedule_nids = pager_query($sql,10,0,NULL,$sqlargs);
+			$schedule_nids = db_query($sql,$sqlargs);
+			while($r = db_fetch_array($schedule_nids))  {
+				$node = cablecast_extensions_schedule_event_node_load($r['nid'], NODE_BUILD_SEARCH_RESULT);
+				$schedule_table_data[] = array(
+				array('data'=>date('g:i A',$node->start_time), 'class'=>'event_time'),
+				array('data'=>'<a href="/'.$node->show_node->path.'">'.t($node->title).'</a>', 'class'=>'event_link'),
+				array('data'=>$node->show_node->vod_links, 'class'=>'vod_links'),
+				);
+			}
+			$aa .= theme_table($schedule_table_header, $schedule_table_data, array('id'=>'cablecast_schedule_'.$channel_tax[0]->tid, 'class' => 'cablecast_schedule'));
+		}
+		else
+		{
+			drupal_set_message("There is no channel by the name &quot;".str_replace('_', ' ',arg(1)).'&quot;<br>Please select from one of the available channels below', 'error');
+		}
+	}
+	else {
+		drupal_set_message('Please select from one of the available channels below','warning');
+	}
+	return $aa;
 
 }
 
 function cablecast_extensions_municipal_meeting_schedule_page() {
-    if(isset($_GET['date']))  {
-        $date = strtotime($_GET['date']);
-    }
-    else {
-        $date = time();
-    }
-    //Table Stuff
-    $schedule_table_header = array( t("Channel"), t("Time"), t("Meeting Name"));
-    $schedule_table_data = array();
-    $channelvocab = cablecast_extensions_get_vocabulary_by_name('Cablecast Channels');
-    $content = "<div class='content'>Most municipal meetings convene in the Selectmen Room at Town Hall, and are broadcast live on 
+	if(isset($_GET['date']))  {
+		$date = strtotime($_GET['date']);
+	}
+	else {
+		$date = time();
+	}
+	//Table Stuff
+	$schedule_table_header = array( t("Channel"), t("Time"), t("Meeting Name"));
+	$schedule_table_data = array();
+	$channelvocab = cablecast_extensions_get_vocabulary_by_name('Cablecast Channels');
+	$content = "<div class='content'>Most municipal meetings convene in the Selectmen Room at Town Hall, and are broadcast live on
     <a href='/schedule/WilliNet_Channel_17'>Channel 17</a>.  
         For Committee Agendas and Minutes visit the <a href='http://williamstown.ws' target='_blank'>Town of Williamstown's website</a>. 
         After each meeting takes place, it will be replayed several times on <a href='/schedule/WilliNet_Channel_16'>Channel 16</a>, and will be viewable online for at least a year, here at WilliNet.org.</div>";
 
-    $schedule_nids = db_query("SELECT ce.nid as nid FROM {cablecast_schedule_event} ce inner join {cablecast_show} cs on (cs.showID = ce.showID) inner join {term_node} tn on (tn.nid = cs.nid) WHERE cs.showID in (153,190,217,592,141,377,254,211,164,1284) and start_time >= ".strtotime(date("Y-m-d\T00:00:00",$date))."  ORDER BY start_time");
-    while($r = db_fetch_array($schedule_nids))  {
-        $node = cablecast_extensions_schedule_event_node_load($r['nid']);
-        foreach($node->taxonomy as $term) {
-            if($term->name) {
-                break;
-            }
-        }
-        $schedule_table_data[] = array(
-        array('data'=>$term->name, 'class'=>'channel'),
-        array('data'=>date('l, F jS, g:i A',$node->start_time), 'class'=>'meeting_time'),
-        array('data'=>'<a href="/'.$node->show_node->path.'">'.t($node->title).'</a>', 'class'=>'event_link')
-        );
-    }
-    if(count($schedule_table_data)>0) {
-        $day = 24*60*60;
-        $content .= theme_table($schedule_table_header, $schedule_table_data, array('id'=>'cablecast_schedule_'.$channel_tax[0]->tid, 'class' => 'cablecast_schedule'));
-    }
-    else
-    {
-        $content .= '<p>No upcoming municipal meetings have been scheduled for broadcast. Please check back later.</p>';
-    }
-    return $content;
+	$schedule_nids = db_query("SELECT ce.nid as nid FROM {cablecast_schedule_event} ce inner join {cablecast_show} cs on (cs.showID = ce.showID) inner join {term_node} tn on (tn.nid = cs.nid) WHERE cs.showID in (153,190,217,592,141,377,254,211,164,1284) and start_time >= ".strtotime(date("Y-m-d\T00:00:00",$date))."  ORDER BY start_time");
+	while($r = db_fetch_array($schedule_nids))  {
+		$node = cablecast_extensions_schedule_event_node_load($r['nid']);
+		foreach($node->taxonomy as $term) {
+			if($term->name) {
+				break;
+			}
+		}
+		$schedule_table_data[] = array(
+		array('data'=>$term->name, 'class'=>'channel'),
+		array('data'=>date('l, F jS, g:i A',$node->start_time), 'class'=>'meeting_time'),
+		array('data'=>'<a href="/'.$node->show_node->path.'">'.t($node->title).'</a>', 'class'=>'event_link')
+		);
+	}
+	if(count($schedule_table_data)>0) {
+		$day = 24*60*60;
+		$content .= theme_table($schedule_table_header, $schedule_table_data, array('id'=>'cablecast_schedule_'.$channel_tax[0]->tid, 'class' => 'cablecast_schedule'));
+	}
+	else
+	{
+		$content .= '<p>No upcoming municipal meetings have been scheduled for broadcast. Please check back later.</p>';
+	}
+	return $content;
 }
 
 function cablecast_extensions_get_vocabulary_by_name($vocabulary_name) {
-    $vocabs = taxonomy_get_vocabularies(NULL);
-    foreach ($vocabs as $vocab_object) {
-        if ($vocab_object->name == $vocabulary_name) {
-            return $vocab_object;
-        }
-    }
-    return NULL;
+	$vocabs = taxonomy_get_vocabularies(NULL);
+	foreach ($vocabs as $vocab_object) {
+		if ($vocab_object->name == $vocabulary_name) {
+			return $vocab_object;
+		}
+	}
+	return NULL;
 }
 
 function cablecast_extensions_show_node_load($nid, $mode = NODE_BUILD_NORMAL) {
-    $node = node_load($nid);
-    $node->build_mode = $mode;
-    $project = db_fetch_object(db_query("SELECT ua.dst, n.title, cp.nid FROM {url_alias} ua INNER JOIN {cablecast_project} cp on (ua.src = CONCAT('node/',cp.nid)) INNER JOIN {node} n on (cp.nid = n.nid) WHERE cp.cablecast_project_id = '%d' ",$node->project_id));
-    $node->project_path = $project->dst;
-    $node->project_nid = $project->nid;
-    $node->project_title = $project->title;
-    $node->video_nodes = array();
-    $result = db_query("SELECT nid FROM {content_type_video} WHERE field_show_id_value = '%d' order by field_show_id_value asc",$node->showID);
-    $node->vod_links = '';
-    while ($row = db_fetch_object($result)) {
-        $vn = node_load($row->nid);
-        $vimg = theme('imagecache', 'video_tiny_thumbnail', $vn->field_image[0]['filepath']);
-        $node->video_nodes[] = $vn;
-        $node->vod_links .= '<a href="/'.$node->path.'" title="click to watch video on demand">'.$vimg.'</a>';
-    }
-    return $node;
+	$node = node_load($nid);
+	$node->build_mode = $mode;
+	$project = db_fetch_object(db_query("SELECT ua.dst, n.title, cp.nid FROM {url_alias} ua INNER JOIN {cablecast_project} cp on (ua.src = CONCAT('node/',cp.nid)) INNER JOIN {node} n on (cp.nid = n.nid) WHERE cp.cablecast_project_id = '%d' ",$node->project_id));
+	$node->project_path = $project->dst;
+	$node->project_nid = $project->nid;
+	$node->project_title = $project->title;
+	$node->video_nodes = array();
+	$result = db_query("SELECT nid FROM {content_type_video} WHERE field_show_id_value = '%d' order by field_show_id_value asc",$node->showID);
+	$node->vod_links = '';
+	while ($row = db_fetch_object($result)) {
+		$vn = node_load($row->nid);
+		$vimg = theme('imagecache', 'video_tiny_thumbnail', $vn->field_image[0]['filepath']);
+		$node->video_nodes[] = $vn;
+		$node->vod_links .= '<a href="/'.$node->path.'" title="click to watch video on demand">'.$vimg.'</a>';
+	}
+	return $node;
 }
 function cablecast_extensions_schedule_event_node_load($nid, $mode = NODE_BUILD_NORMAL) {
-    $node = node_load($nid);
-    $node->build_mode = $mode;
-    $node->show_node = cablecast_extensions_show_node_load($node->cablecast_show_nid, $mode);
-    //    $node->video_nodes = array();
-    //    $result = db_query("SELECT nid FROM {content_type_video} WHERE field_show_id_value = '%d' order by field_show_id_value asc",$node->showID);
-    //    $node->vod_links = '';
-    //    while ($row = db_fetch_object($result)) {
-    //        $vn = node_load($row->nid);
-    //        $vimg = theme('imagecache', 'video_tiny_thumbnail', $vn->field_image[0]['filepath']);
-    //        $node->video_nodes[] = $vn;
-    //        $node->vod_links .= '<a href="/'.$node->show_node->path.'" title="click to watch video on demand">'.$vimg.'</a>';
-    //    }
-    return $node;
+	$node = node_load($nid);
+	$node->build_mode = $mode;
+	$node->show_node = cablecast_extensions_show_node_load($node->cablecast_show_nid, $mode);
+	//    $node->video_nodes = array();
+	//    $result = db_query("SELECT nid FROM {content_type_video} WHERE field_show_id_value = '%d' order by field_show_id_value asc",$node->showID);
+	//    $node->vod_links = '';
+	//    while ($row = db_fetch_object($result)) {
+	//        $vn = node_load($row->nid);
+		//        $vimg = theme('imagecache', 'video_tiny_thumbnail', $vn->field_image[0]['filepath']);
+		//        $node->video_nodes[] = $vn;
+		//        $node->vod_links .= '<a href="/'.$node->show_node->path.'" title="click to watch video on demand">'.$vimg.'</a>';
+		//    }
+	return $node;
 }
+
+
+function theme_cablecast_extensions_project_shows($node)  {
+	$output = "<div class=\"cablecast-project-shows\">\n".
+			  "<table class=\"cablecast-project-shows-list\">\n".
+			  "<tr><th>Show Title</th><th>Show Desc</th><th>Link</th></tr>\n";
+	foreach($node->cablecast_shows as $show)  {
+		$output = $output."<tr><td>".check_markup($show->title)."</td><td>".check_markup($show->body)."</td><td>".l('View More', 'node/'.$show->nid)."</td></tr>\n";
+	}
+	$output = $output."</table></div>\n";
+	return $output;
+}
+
+

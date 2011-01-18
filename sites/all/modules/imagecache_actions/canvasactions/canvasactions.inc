@@ -1,5 +1,5 @@
 <?php
-// $Id: canvasactions.inc,v 1.1.2.4 2010/10/18 10:34:29 dman Exp $
+// $Id: canvasactions.inc,v 1.1.2.10 2011/01/16 15:52:13 dman Exp $
 /**
  * @file Helper functions for the text2canvas action for imagecache
  * 
@@ -33,6 +33,7 @@ if (! function_exists('imagecache_actions_keyword_filter') ) {
  * @return a form definition
  */
 function canvasactions_definecanvas_form($action) {
+  module_load_include('inc', 'imagecache_actions', 'utility-color');
   if (imageapi_default_toolkit() != 'imageapi_gd') {
     drupal_set_message('Define Canvas not currently supported by using imagemagick. This effect requires GD image toolkit only.', 'warning');
   }
@@ -185,7 +186,7 @@ function theme_canvasactions_definecanvas($element) {
 function canvasactions_definecanvas_image(&$image, $action = array()) {
  
   // May be given either exact or relative dimensions.
-  if ($action['exact']['width'] || $action['exact']['width']) {
+  if ($action['exact']['width'] || $action['exact']['height']) {
   // Allows only one dimension to be used if the other is unset.
     if (! $action['exact']['width']) $action['exact']['width'] = $image->info['width'];
     if (! $action['exact']['height']) $action['exact']['height'] = $image->info['height'];
@@ -195,7 +196,6 @@ function canvasactions_definecanvas_image(&$image, $action = array()) {
 
     $targetsize['left'] = _imagecache_keyword_filter($action['exact']['xpos'], $targetsize['width'], $image->info['width']);
     $targetsize['top'] = _imagecache_keyword_filter($action['exact']['ypos'], $targetsize['height'], $image->info['height']);
-
   }
   else {
     // calculate relative size
@@ -244,7 +244,6 @@ function imageapi_gd_image_definecanvas(&$image, $action = array()) {
     imagesavealpha($image->resource, TRUE);
   }
   imagefilledrectangle($newcanvas, 0, 0, $targetsize['width'], $targetsize['height'], $background);
-#  imagealphablending($newcanvas, TRUE);
 
   if ($action['under']) {
     $canvas_object = (object) array(
@@ -274,29 +273,16 @@ function imageapi_gd_image_definecanvas(&$image, $action = array()) {
  */
 function imageapi_imagemagick_image_definecanvas(&$image, $action = array()) {
   $targetsize = $action['targetsize'];
-  $RGB = $action['RGB'];
-  $backgroundcolor = $RGB['HEX'] != '' ? '#'. $RGB['HEX'] : 'None';
-   
-   # TODO needs work.
-   #
-  $background = " -background '{$backgroundcolor}' ";
-  
-  $crop = " -crop   '{$targetsize['width']}x{$targetsize['height']}-{$targetsize['left']}-{$targetsize['top']}!' ";
- 
-  $draw = " -draw '";
-  $draw .= " fill '{$RGB['HEX']}' polygon 0,0 {$targetsize['width']},0 {$targetsize['width']},{$targetsize['height']} 0,{$targetsize['height']} ";
-  $draw .= " ' ";
-  $draw .= " +repage ";
- 
-  $extent = " -extent '{$targetsize['width']}x{$targetsize['height']}-{$targetsize['left']}-{$targetsize['top']}!'";
-
-  if ($action['under']) {
-    $compose = " $background $crop $extent ";
-  } 
-  else {
-    $compose = " $background $crop $draw ";
+  $backgroundcolor = $action['RGB']['HEX'] != '' ? '#'. $action['RGB']['HEX'] : 'None';
+  $geometry = "";
+  if ($targetsize['left'] || $targetsize['top']) {
+    $offset = ($targetsize['left'] < 0 ? "-" : "+") . (int)$targetsize['left']
+      . ($targetsize['top'] < 0 ? "-" : "+") . (int)$targetsize['top'];
+    $geometry = "-geometry $offset";
   }
+  $swap = ($action['under'] ? '+swap' : '');
 
+  $compose = "  \\( -size {$targetsize['width']}x{$targetsize['height']} xc:$backgroundcolor \\) $geometry $swap -composite  ";
   $image->ops[] = $compose;
   return TRUE; 
 }
@@ -392,7 +378,7 @@ function canvasactions_canvas2file_image(&$image, $action = array()) {
   // starting the merge. The built-in imagecopymerge, and the watermark library both do not
   // allow overlays to be bigger than the target.
   // Adjust size
-  $crop_rules = array('xoffset' => 0, 'yoffset' => 0, );
+  $crop_rules = array('left' => 0, 'top' => 0, );
   if (empty($action['dimensions'])) $action['dimensions'] = 'original';
   switch ($action['dimensions']) {
     case 'original' :
@@ -619,7 +605,7 @@ function canvasactions_aspect_form($action) {
 
   $presets = array();
   foreach (imagecache_presets(TRUE) as $preset) {
-    $presets[$preset['presetid']] = $preset['presetname'];
+    $presets[$preset['presetname']] = $preset['presetname'];
   }
 
   $form['portrait'] = array(
@@ -664,7 +650,7 @@ function theme_canvasactions_aspect($element) {
   if ($action['ratio_adjustment'] != 1) {
     $ratio_adjustment = " (switch at 1:{$action['ratio_adjustment']})";
   }
-  return 'Portrait size: <strong>'. $presets[$action['portrait']]['presetname'] . '</strong>. Landscape size: <strong>'. $presets[$action['landscape']]['presetname'] .'</strong>'. $ratio_adjustment ;
+  return 'Portrait size: <strong>'. $action['portrait'] . '</strong>. Landscape size: <strong>'. $action['landscape'] .'</strong>'. $ratio_adjustment ;
 }
 
 /**
@@ -683,8 +669,14 @@ function canvasactions_aspect_image(&$image, $action = array()) {
   }
   $aspect = $image->info['width'] / $image->info['height'];
   // width / height * adjustment. If > 1, it's wide. 
-  $preset_id = (($aspect * $ratio_adjustment) > 1) ? $action['landscape'] : $action['portrait'];
-  $preset = imagecache_preset($preset_id);
+  $preset_name = (($aspect * $ratio_adjustment) > 1) ? $action['landscape'] : $action['portrait'];
+  $preset = imagecache_preset_by_name($preset_name);
+
+  if (empty($preset)) {
+    // Required preset has gone missing?
+    watchdog('imagecache_canvasactions', "When running 'aspect' action, I was unable to load sub-action %preset_name. Either it's been deleted or the DB needs an update", array('%preset_name' => $preset_name), WATCHDOG_ERROR);
+    return FALSE;
+  }
 
   // Run the preset actions ourself. Cannot invoke a preset from the top as it handles filenames, not image objects.
   // ripped from imagecache_build_derivative()

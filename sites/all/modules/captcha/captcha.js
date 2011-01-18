@@ -1,8 +1,8 @@
-// $Id: captcha.js,v 1.2.2.1 2010/11/16 21:20:01 soxofaan Exp $
+// $Id: captcha.js,v 1.2.2.2 2010/11/29 23:34:44 soxofaan Exp $
 
 // JavaScript behaviors for the CAPTCHA admin page
 Drupal.behaviors.captchaAdmin = function (context) {
-	
+
 	// Add onclick handler to checkbox for adding a CAPTCHA description
 	// so that the textfields for the CAPTCHA description are hidden
 	// when no description should be added.

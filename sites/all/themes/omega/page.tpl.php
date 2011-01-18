@@ -1,5 +1,5 @@
 <?php
-// $Id: page.tpl.php,v 1.6.2.7 2010/04/28 04:02:58 himerus Exp $
+// $Id: page.tpl.php,v 1.6.2.8 2010/11/16 14:39:39 himerus Exp $
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -102,7 +102,9 @@
     
     <div id="main-content-container" class="container-<?php print $content_container_width; ?> clearfix">
       <div id="main-wrapper" class="column <?php print $main_content_classes; ?>">
-        <?php print $mission; ?>
+        <?php if (!empty($mission)) {
+          print $mission;
+        }?>
         <?php if($content_top): ?>
         <div id="content-top">
           <?php print $content_top; ?>

@@ -1,5 +1,5 @@
 <?php
-// $Id: page.tpl.php,v 1.23.2.21 2010/04/25 10:59:48 sign Exp $
+// $Id: page.tpl.php,v 1.23.2.23 2010/12/11 11:20:06 sign Exp $
 
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -33,7 +33,7 @@
           <?php if (isset($go_home)) print $go_home; ?>
         </div>
         <div id="admin-links">
-          <?php print $rootcandy_user_links ?>
+          <?php if (isset($rootcandy_user_links)) print $rootcandy_user_links ?>
         </div>
         <?php if (!$hide_panel) { ?>
         <div id="header-title" class="clearfix">
@@ -85,8 +85,8 @@
                 //  print theme('links', $menu_sublinks, array('id' => 'rootcandy-menu'));
                 // }
               ?>
-              <?php if (isset($tabs) && $tabs): print '<div id="tabs-primary"><ul class="tabs primary">'. $tabs .'</ul></div><div class="level-1">'; endif; ?>
-              <?php if (isset($tabs2) && $tabs2): print '<div id="tabs-secondary"><ul class="tabs secondary">'. $tabs2 .'</ul></div><div class="level-2">'; endif; ?>
+              <?php if (isset($tabs) && $tabs): print '<div id="tabs-primary"><ul class="tabs primary">'. $tabs .'</ul></div><div class="level-1 clear-block">'; endif; ?>
+              <?php if (isset($tabs2) && $tabs2): print '<div id="tabs-secondary"><ul class="tabs secondary">'. $tabs2 .'</ul></div><div class="level-2 clear-block">'; endif; ?>
               <?php
                 //dashboard
                 if (isset($dashboard)) {

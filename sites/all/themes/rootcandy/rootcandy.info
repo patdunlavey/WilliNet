@@ -39,9 +39,9 @@ settings[rootcandy_hide_author] = 0
 settings[rootcandy_hide_panel] = 0
 settings[rootcandy_navigation_source_admin] = '_rootcandy_default_navigation'
 
-; Information added by drupal.org packaging script on 2010-07-18
+; Information added by drupal.org packaging script on 2010-12-11
 version = "6.x-1.x-dev"
 core = "6.x"
 project = "rootcandy"
-datestamp = "1279412052"
+datestamp = "1292070175"
 

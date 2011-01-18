@@ -1,5 +1,5 @@
 <?php
-// $Id: utility-form.inc,v 1.1.2.1 2010/07/20 00:44:25 dman Exp $
+// $Id: utility-form.inc,v 1.1.2.2 2010/12/16 09:36:07 dman Exp $
 /**
  * @file Utility form, conversion and rendering functions for image processes
  */
@@ -14,7 +14,7 @@ function imagecache_actions_pos_form($action) {
     'xpos' => 'center',
     'ypos' => 'center',
   );
-  $action = array_merge($defaults, (array)$action);
+  $action = array_merge($defaults, (array) $action);
 
   $form = array(
     #'#theme' => 'canvasactions_pos_form',
@@ -40,13 +40,18 @@ function imagecache_actions_pos_form($action) {
 
 /**
  * Ensure the numbers are valid.
- * 
+ *
  * Set blanks to zero, just so the status summary doesn't get odd blanks
  */
 function imagecache_actions_validate_number(&$element, &$form_state) {
-  if (empty($element['#value'])) form_set_value($element, 0, $form_state);
+  if (empty($element['#value'])) {
+    form_set_value($element, 0, $form_state);
+  }
 }
 
+/**
+ * Check the alpha value is valid.
+ */
 function imagecache_actions_validate_alpha(&$element, &$form_status) {
   if (!is_numeric($element['#value']) || $element['#value'] < 1 || $element['#value'] > 100) {
     form_set_error(join('][', $element['#parents']), t('Opacity must be a number between 1 and 100.'));

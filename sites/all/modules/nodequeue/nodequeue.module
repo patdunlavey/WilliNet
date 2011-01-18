@@ -1,5 +1,5 @@
 <?php
-// $Id: nodequeue.module,v 1.107.2.3 2010/12/11 20:49:03 ezrag Exp $
+// $Id: nodequeue.module,v 1.107.2.10 2011/01/13 20:34:20 ezrag Exp $
 
 /**
  * @file
@@ -589,11 +589,11 @@ function nodequeue_view_queues() {
     if ($queue->subqueues == 1) {
       $qids[] = $queue->qid;
     }
-    $sort_secondary[] = $queue->title;
+    $sort_secondary[] = drupal_strtolower($queue->title);
     switch ($table_sort['sql']) {
       case 'title':
       default:
-        $sort_primary[] = $queue->title;
+        $sort_primary[] = drupal_strtolower($queue->title);
         $sort_direction = $sort_direction_regular;
         break;
       case 'size':
@@ -713,6 +713,21 @@ function nodequeue_edit_queue_form(&$form_state, $queue) {
     '#maxlength' => 64,
     '#description' => t('Enter the name of the queue'),
   );
+
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#size' => 50,
+    '#maxlength' => 32,
+    '#description' => t("This is the unique name of the queue. It must contain only alphanumeric characters and underscores. It is used to identify the queue internally. This name cannot change."),
+    '#required' => TRUE,
+  );
+
+  if (isset($queue->name)) {
+    $form['name']['#default_value'] = $queue->name;
+    $form['name']['#disabled'] = TRUE;
+    $form['name']['#value'] = $queue->name;
+  }
 
   // This is a value; as the default nodequeue implementation has just one
   // queue per nodequeue, this field is totally redundant. Plugins can
@@ -875,6 +890,12 @@ function nodequeue_edit_queue_form(&$form_state, $queue) {
  * Validate function for the nodequeue_queue form.
  */
 function nodequeue_edit_queue_form_validate($form, &$form_state) {
+  if (preg_match("/[^[:alnum:]_]/", $form_state['values']['name'])) {
+    form_set_error('name', t("The queue's machine name must consist of alphanumeric or underscore characters only."));
+  }
+  if (!nodequeue_machine_name_available($form_state['values']['name'], $form_state['values']['qid'])) {
+    form_set_error('name', t("The queue's machine name is already in use. Please choose a different machine name."));
+  }
   if (empty($form_state['values']['title'])) {
     form_set_error('title', t('Please enter a title for this queue.'));
   }
@@ -922,6 +943,27 @@ function nodequeue_edit_queue_form_submit($formid, &$form_state) {
     drupal_set_message(t('The queue has been updated.'));
   }
   $form_state['redirect'] = 'admin/content/nodequeue';
+}
+
+/**
+ * Determine if the machine name is in use.
+ */
+function nodequeue_machine_name_available($machine_name, $qid = NULL) {
+  // Find all existing records for the given machine_name
+  $result = db_query("SELECT qid FROM {nodequeue_queue} WHERE `name` LIKE '%s'", $machine_name);
+  $existing_queues = array();
+  while ($record = db_fetch_object($result)) {
+    $existing_queues[] = $record->qid;
+  }
+  if (count($existing_queues) == 0) {
+    // Creating a new machine name queue
+    return TRUE;
+  }
+  else if (count($existing_queues) == 1 && !empty($qid) && $qid == $existing_queues[0]) {
+    // Checking an existing queue that has not changed its name.
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -1350,7 +1392,10 @@ function nodequeue_clear_confirm_submit($form, &$form_state) {
 /**
  * Page callback for autocomplete.
  */
-function nodequeue_autocomplete($sqid = NULL, $string = NULL) {
+function nodequeue_autocomplete() {
+  $args = func_get_args();
+  $sqid = array_shift($args);
+  $string = implode('/', $args);
   $matches = _nodequeue_autocomplete($sqid, $string);
   drupal_json(drupal_map_assoc($matches));
 }
@@ -1358,7 +1403,7 @@ function nodequeue_autocomplete($sqid = NULL, $string = NULL) {
 function _nodequeue_autocomplete($sqid, $string) {
   $output = array();
 
-  if (!$sqid || !is_numeric($sqid) || !$string) {
+  if (!is_numeric($sqid) || !$string) {
     return $output;
   }
 
@@ -1479,6 +1524,48 @@ function nodequeue_load_queues_by_type($type, $location = NULL, $account = NULL,
   }
   return nodequeue_load_queues(array_keys($qids), $bypass_cache);
 }
+
+/**
+ * Return a queue by its machine name. This is obviously not ideal due to the
+ * extra queries, but probably preferable to changing current API calls.
+ *
+ * @param $name
+ *   The queue machine name
+ *
+ * @return
+ *   The queue definition, or an empty array if no queue was found with the
+ *   given machine name.
+ */
+function nodequeue_load_queue_by_name($name) {
+  $map = nodequeue_get_qid_map();
+  if (isset($map[$name])) {
+    $queues = nodequeue_load_queues(array($map[$name]));
+    if ($queues) {
+      return current($queues);
+    }
+  }
+
+  return array();
+}
+
+
+/**
+ * Return a map of queue name to qid values to aid in various lookups.
+ *
+ * @return array
+ *   A array of qids, keyed by machine name.
+ */
+function nodequeue_get_qid_map() {
+  static $map = array();
+  if (!$map) {
+    $result = db_query("SELECT qid, name FROM {nodequeue_queue}");
+    while ($get = db_fetch_object($result) ) {
+      $map[$get->name] = $get->qid;
+    }
+  }
+  return $map;
+}
+
 
 /**
  * Used by menu system to determine access to the node and the queue in question.
@@ -1721,7 +1808,8 @@ function subqueue_load($sqid) {
   if (!$sqid) {
     return NULL;
   }
-  return array_shift(nodequeue_load_subqueues(array($sqid)));
+  $queues = nodequeue_load_subqueues(array($sqid));
+  return !empty($queues) ? array_shift($queues) : array();
 }
 
 /**
@@ -1885,14 +1973,20 @@ function nodequeue_load_subqueues_by_reference($references, $bypass_cache = FALS
  */
 function nodequeue_save(&$queue) {
   if (!isset($queue->qid)) {
-    db_query("INSERT INTO {nodequeue_queue} (title, subqueue_title, size, link, link_remove, owner, show_in_links, show_in_tab, show_in_ui, i18n, reverse, reference) VALUES ('%s', '%s', %d, '%s', '%s', '%s', %d, %d, %d, %d, %d, '%s')", $queue->title, $queue->subqueue_title, $queue->size, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->i18n, $queue->reverse, $queue->reference);
+    db_query("INSERT INTO {nodequeue_queue} (title, name, subqueue_title, size, link, link_remove, owner, show_in_links, show_in_tab, show_in_ui, i18n, reverse, reference) VALUES ('%s', '%s', '%s', %d, '%s', '%s', '%s', %d, %d, %d, %d, %d, '%s')", $queue->title, $queue->name, $queue->subqueue_title, $queue->size, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->i18n, $queue->reverse, $queue->reference);
     $queue->qid = db_last_insert_id('nodequeue_queue', 'qid');
     if (function_exists('views_invalidate_cache')) {
       views_invalidate_cache();
     }
   }
   else {
-    db_query("UPDATE {nodequeue_queue} set size = %d, title = '%s', subqueue_title = '%s', link = '%s', link_remove = '%s', owner = '%s', show_in_links = %d, show_in_tab = %d, show_in_ui = %d, i18n = %d, reverse = %d, reference = '%s' WHERE qid = %d", $queue->size, $queue->title, $queue->subqueue_title, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->i18n, $queue->reverse, $queue->reference, $queue->qid);
+    // Allow nodequeue to save and not update the name unless supplied
+    if (isset($queue->name) && !empty($queue->name)) {
+      db_query("UPDATE {nodequeue_queue} SET size = %d, title = '%s', subqueue_title = '%s', link = '%s', link_remove = '%s', owner = '%s', show_in_links = %d, show_in_tab = %d, show_in_ui = %d, i18n = %d, reverse = %d, reference = '%s' WHERE qid = %d", $queue->size, $queue->title, $queue->subqueue_title, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->i18n, $queue->reverse, $queue->reference, $queue->qid);
+    }
+    else {
+      db_query("UPDATE {nodequeue_queue} SET size = %d, title = '%s', name = '%s', subqueue_title = '%s', link = '%s', link_remove = '%s', owner = '%s', show_in_links = %d, show_in_tab = %d, show_in_ui = %d, i18n = %d, reverse = %d, reference = '%s' WHERE qid = %d", $queue->size, $queue->title, $queue->name, $queue->subqueue_title, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->i18n, $queue->reverse, $queue->reference, $queue->qid);
+    }
     db_query("DELETE FROM {nodequeue_roles} WHERE qid = %d", $queue->qid);
     db_query("DELETE FROM {nodequeue_types} WHERE qid = %d", $queue->qid);
   }
@@ -2019,7 +2113,7 @@ function nodequeue_subqueue_add($queue, &$subqueue, $nid) {
     }
     if (module_exists('apachesolr')) {
       apachesolr_mark_node($nid);
-    }  
+    }
     //Invoke the hook to notify other modules of the node addition.
     module_invoke_all('nodequeue_add', $subqueue->sqid, $nid);
   }
@@ -2041,9 +2135,6 @@ function nodequeue_subqueue_remove_node($sqid, $nid) {
     if (module_exists('apachesolr')) {
       apachesolr_mark_node($nid);
     }
-
-    // Invoke the hook to notify other modules of the node removal.
-    module_invoke_all('nodequeue_remove', $sqid, $nid);
   }
 }
 /**
@@ -2073,7 +2164,7 @@ function nodequeue_subqueue_remove($sqid, $start, $end = NULL) {
   $diff = $end - $start + 1;
   db_query("DELETE FROM {nodequeue_nodes} WHERE sqid = %d AND position >= %d AND position <= %d", $sqid, $start, $end);
   db_query("UPDATE {nodequeue_nodes} SET position = position - %d WHERE sqid = %d AND position > %d",  $diff, $sqid, $end);
-  
+
   // Invoke the hook to let other modules know that the nodes were removed.
   while($node = db_fetch_object($result)) {
     module_invoke_all('nodequeue_remove', $sqid, $node->nid);
@@ -2343,6 +2434,7 @@ function nodequeue_nodequeue_form_submit(&$queue, $form_state) {
  */
 function nodequeue_node_titles($sqid, $title = '', $backward = true, $from = 0, $count = 0, $published_only = TRUE) {
   $orderby = ($backward ? "DESC" : "ASC");
+  $published_sql = '';
   if ($published_only) {
     $published_sql = 'AND n.status = 1';
   }
@@ -2372,6 +2464,7 @@ function nodequeue_view_nodes($sqid, $backward = TRUE, $teaser = TRUE, $links = 
  */
 function nodequeue_load_nodes($sqid, $backward = FALSE, $from = 0, $count = 5, $published_only = TRUE) {
   $orderby = ($backward ? "DESC" : "ASC");
+  $published_sql = '';
   if ($published_only) {
     $published_sql = 'AND n.status = 1';
   }
@@ -2553,7 +2646,7 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
     $where = '(n.status = 1 || n.uid = %d) AND ';
     $where_args = array($user->uid);
   }
-  
+
   $where .= "n.type IN (". db_placeholders($queue->types, 'varchar') .')';
   $where_args = array_merge($where_args, $queue->types);
 
@@ -2571,7 +2664,7 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
   }
   else {
     // Build the constant parts of the query.
-    $where .= " AND LOWER(n.title) LIKE LOWER('%s%%')";
+    $where .= " AND LOWER(n.title) LIKE LOWER('%%%s%%')";
     array_push($where_args, $string);
   }
 

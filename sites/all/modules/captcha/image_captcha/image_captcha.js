@@ -1,8 +1,8 @@
-// $Id: image_captcha.js,v 1.1.2.1 2010/11/16 21:20:01 soxofaan Exp $
+// $Id: image_captcha.js,v 1.1.2.2 2010/11/29 23:34:44 soxofaan Exp $
 
 // JavaScript behaviors for the Image CAPTCHA admin page
 Drupal.behaviors.imageCaptchaAdmin = function (context) {
-	
+
 	// Helper function to show/hide noise level widget.
 	var noise_level_shower = function(speed) {
 		speed = (typeof speed == 'undefined') ? 'slow' : speed;

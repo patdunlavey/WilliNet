@@ -1,4 +1,4 @@
-/* $Id: style.css,v 1.33.2.47 2010/07/17 14:09:10 sign Exp $ */
+/* $Id: style.css,v 1.33.2.49 2010/12/11 11:20:06 sign Exp $ */
 
 html {
   overflow-y: scroll;
@@ -125,8 +125,8 @@ h1 {
   height:auto !important;
   height: 24px;
   background: url(images/navigation_bg.png) repeat-x bottom;
-  background-color: #b2c8d3;
-  color: #b2c8d3;
+  background-color: #e0ecff;
+  color: #e0ecff;
 }
 
 #navigation .item-list {
@@ -1066,6 +1066,10 @@ html.js fieldset.collapsible legend a {
   padding-left:20px;
 }
 
+html.js fieldset.collapsed {
+  margin-bottom: 10px;
+}
+
 html.js fieldset.collapsed legend a {
   background-position: 5px -20px;
 }
@@ -1073,3 +1077,4 @@ html.js fieldset.collapsed legend a {
 div.admin {
   padding-top:0;
 }
+

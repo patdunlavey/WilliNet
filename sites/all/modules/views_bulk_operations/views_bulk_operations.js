@@ -1,4 +1,4 @@
-// $Id: views_bulk_operations.js,v 1.1.4.21 2010/11/16 05:05:17 kratib Exp $
+// $Id: views_bulk_operations.js,v 1.1.4.22 2011/01/16 20:22:58 kratib Exp $
 (function ($) {
 // START jQuery
 
@@ -10,18 +10,32 @@ Drupal.vbo.selectAll = function() {
 
   var select = $('th.select-all', table).click(function() {
     setSelectAll(false);
+    var selection = {};
+    checkboxes.each(function() {
+      selection[this.value] = this.checked ? 1 : 0;
+    });
+    $.post(Drupal.settings.basePath+'views-bulk-operations/js/select', {url: Drupal.settings.vbo.url, selection: JSON.stringify(selection)});
   });
+
   $('input#vbo-select-all-pages', table).click(function() {
     setSelectAll(true);
+    $.post(Drupal.settings.basePath+'views-bulk-operations/js/select', {url: Drupal.settings.vbo.url, selection: JSON.stringify({'select_all': 1})});
   });
+
   $('input#vbo-select-this-page', table).click(function() {
     setSelectAll(false);
+    $.post(Drupal.settings.basePath+'views-bulk-operations/js/select', {url: Drupal.settings.vbo.url, selection: JSON.stringify({'select_all': 0})});
   });
-  var checkboxes = $('td input:checkbox.vbo-select', form).click(function() {
+
+  var checkboxes = $(':checkbox.vbo-select', form).click(function() {
+    var selection = {};
     if (checkboxes.length > $(checkboxes).filter(':checked').length) {
       $('input#edit-objects-select-all', form).val(0);
+      selection['select_all'] = 0;
     }
     setSelectAll($('input#edit-objects-select-all', form).val() == 1);
+    selection[this.value] = this.checked ? 1 : 0;
+    $.post(Drupal.settings.basePath+'views-bulk-operations/js/select', {url: Drupal.settings.vbo.url, selection: JSON.stringify(selection)});
   }).each(function() {
     $(this).parents('tr:first')[ this.checked ? 'addClass' : 'removeClass' ]('selected');
   });
@@ -73,24 +87,6 @@ Drupal.vbo.startUp = function(context) {
         this.checked = !checked;
       });
     }
-  });
-
-  // Set up pager handling to store the current selection.
-  $('ul.pager a', context).click(function() {
-    var selection = [];
-    $(':checkbox.vbo-select', context).filter(':checked').each(function() {
-      selection.push($(this).val());
-    });
-    var select_all = $('#edit-objects-select-all', context).val();
-    var page = location.href.match(/page=(\d+)/) || [0,0];
-    $.ajax({
-      type: 'POST',
-      url: Drupal.settings.basePath+'views-bulk-operations/js/pager',
-      data: 'url='+escape(Drupal.settings.vbo.url)+'&selection='+selection+'&select_all='+select_all+'&page='+page[1],
-      datatype: 'json',
-      async: false
-    });
-    return true;
   });
 }
 

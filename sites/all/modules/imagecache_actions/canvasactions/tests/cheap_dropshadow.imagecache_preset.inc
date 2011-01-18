@@ -14,9 +14,17 @@ $presets['cheap_dropshadow'] = array (
   '#weight' => '3.3',
   'actions' => 
   array (
+    -1 => array (
+      'weight' => '-1',
+      'module' => 'imagecache_coloractions',
+      'action' => 'imagecache_convert',
+      'data' => array (
+        'format' => 'image/png',
+      ),
+    ),
     0 => 
     array (
-      'weight' => '-10',
+      'weight' => '0',
       'module' => 'imagecache_canvasactions',
       'action' => 'canvasactions_definecanvas',
       'data' => 
@@ -44,7 +52,7 @@ $presets['cheap_dropshadow'] = array (
     ),
     1 => 
     array (
-      'weight' => '-9',
+      'weight' => '1',
       'module' => 'imagecache_canvasactions',
       'action' => 'canvasactions_definecanvas',
       'data' => 
@@ -72,7 +80,7 @@ $presets['cheap_dropshadow'] = array (
     ),
     2 => 
     array (
-      'weight' => '-8',
+      'weight' => '2',
       'module' => 'imagecache_canvasactions',
       'action' => 'canvasactions_source2canvas',
       'data' => 
@@ -84,7 +92,7 @@ $presets['cheap_dropshadow'] = array (
     ),
     3 => 
     array (
-      'weight' => '-7',
+      'weight' => '3',
       'module' => 'imagecache',
       'action' => 'imagecache_scale',
       'data' => 

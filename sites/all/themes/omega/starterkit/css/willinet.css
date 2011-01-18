@@ -567,7 +567,7 @@ div.views_slideshow_cycle_slide {
   width: 580px !important;
 }
 div.views_slideshow_cycle_slide .views-field-body {padding:7px 0px 0 0;float:left; width:164px;}
-div.views_slideshow_cycle_slide .views-field-body .field-content {
+div.views_slideshow_cycle_slide .views-field-body > .field-content {
 background-color:#FFFFFF;
 border:1px solid #CCCCCC;
 font-size:0.9em;
@@ -714,9 +714,12 @@ background:none;
 border:none;
 }
 .rss-link.icon {
-    bottom: 0;
+    bottom: -3px;
     position: absolute;
     right: 4px;
+}
+.view-blog-posts .more-link {
+margin-right:25px;
 }
 
 #footer-last {
@@ -736,3 +739,4 @@ margin-right:-10px;
 #footer_credits a {
 color:#ffffff;
 }
+

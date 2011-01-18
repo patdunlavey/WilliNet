@@ -24,8 +24,20 @@ $presets['rotate_scale_alpha'] = array (
         'bgcolor' => '',
       ),
     ),
+    /*
+     * imageapi resize is NOT alpha-safe. This test case proves the bug.
+     * A work-around is to change format before resizing.
     2 => array (
       'weight' => '2',
+      'module' => 'imagecache_coloractions',
+      'action' => 'imagecache_convert',
+      'data' => array (
+        'format' => 'image/png',
+      ),
+    ),
+    */
+    3 => array (
+      'weight' => '3',
       'module' => 'imagecache',
       'action' => 'imagecache_scale',
       'data' => array (
@@ -34,8 +46,8 @@ $presets['rotate_scale_alpha'] = array (
         'upscale' => TRUE,
       ),
     ),
-    3 => array (
-      'weight' => '3',
+    4 => array (
+      'weight' => '4',
       'module' => 'imagecache_coloractions',
       'action' => 'imagecache_convert',
       'data' => array (

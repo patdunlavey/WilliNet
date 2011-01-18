@@ -1,5 +1,5 @@
 <?php
-// $Id: template.php,v 1.36.2.51 2010/07/17 14:09:10 sign Exp $
+// $Id: template.php,v 1.36.2.52 2010/12/10 22:02:37 sign Exp $
 
 /**
  * @file
@@ -553,7 +553,7 @@ function _rootcandy_countmatches($arrayone, $arraytwo) {
 function rootcandy_system_settings_form($form) {
   $themes = list_themes();
   $enabled_theme = arg(4);
-  if ($form['#id'] == 'system-theme-settings' AND ($enabled_theme == 'rootcandy' || $themes[$enabled_theme]->base_theme == 'rootcandy')) {
+  if ($form['#id'] == 'system-theme-settings' AND ($enabled_theme == 'rootcandy' || in_array($themes[$enabled_theme]->base_theme, array('rootcandy', 'rootcandy_dark', 'rootcandy_fixed')))) {
 
     foreach ($form['theme_specific']['rows'] as $rid => $row) {
       //we are only interested in numeric keys
