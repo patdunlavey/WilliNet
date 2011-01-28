@@ -1,6 +1,6 @@
 <?php
 //dpm($node);
-$output = "<div class=\"cablecast-project-shows\">\n".
+$output = "<div class=\"cablecast-project-shows\">\n";
 $limit = variable_get('cablecast_project_shows_per_page',NULL);
 
 $shows_table_header = array(array('data'=>t("Show"),'class'=>''), array('data'=>t("Date"),'class'=>''), array('data'=>t("Length"),'class'=>''), array('data'=>t("View Online"),'class'=>'vod_links'));
