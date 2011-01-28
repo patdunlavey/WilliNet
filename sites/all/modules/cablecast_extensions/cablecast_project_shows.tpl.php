@@ -14,7 +14,7 @@ foreach($node->cablecast_shows as $show)  {
     array('data'=> $vodlinks, 'class'=>'vod_links')
     );  
 }
-$output = theme_table($shows_table_header, $shows_table_rows, array('id'=>'cablecast_project_shows', 'class' => 'cablecast_project_shows'));
+$output .= theme_table($shows_table_header, $shows_table_rows, array('id'=>'cablecast_project_shows', 'class' => 'cablecast_project_shows'));
 $output .= theme('pager',array(), $limit);
-$output .= "\n</div>";
+$output .= "\n</div><!-- cablecast-project-shows-->";
 print $output;
