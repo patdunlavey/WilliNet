@@ -1,5 +1,5 @@
 <?php
-// $Id: cablecast.views.inc,v 1.1.2.2 2010/11/28 04:07:16 raytiley Exp $
+// $Id: cablecast.views.inc,v 1.1 2010/07/20 22:18:47 raytiley Exp $
 function cablecast_views_data() {
 	$data['cablecast_show']['table']['group'] = t('Cablecast Shows');
 	$data['cablecast_schedule_event']['table']['group'] = t('Cablecast Schedule Events');

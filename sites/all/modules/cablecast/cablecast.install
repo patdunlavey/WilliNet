@@ -1,8 +1,8 @@
 <?php
-// $Id: cablecast.install,v 1.1.2.3 2011/01/07 16:12:12 raytiley Exp $
+// $Id: cablecast.install,v 1.1 2010/07/20 22:18:47 raytiley Exp $
 
 /**
-  * Implementation of hook_install().
+  * Implementation of hook_requirements().
   */
 function cablecast_requirements($phase) {
   $requirements = array();

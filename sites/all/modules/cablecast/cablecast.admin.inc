@@ -1,5 +1,5 @@
 <?php
-//$ $Id: cablecast.admin.inc,v 1.1.2.2 2011/01/07 16:12:12 raytiley Exp $
+//$ $Id: cablecast.admin.inc,v 1.1 2010/07/20 22:18:47 raytiley Exp $
 
 /**
  * @file
