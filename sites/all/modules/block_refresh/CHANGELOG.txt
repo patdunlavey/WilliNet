@@ -1,0 +1,12 @@
+// $Id: CHANGELOG.txt,v 1.1.2.2 2010/07/31 20:42:44 bocaj Exp $
+
+July 31, 2010
+- Added README.txt
+- Made help text only show link on admin/help so that it didn't show everywhere
+    (thanks to neighborhoodsix for notification of this bug)
+
+July 29, 2010
+** Initial Release by bocaj **
+- Automatic refresh determined by seconds (configureable by block)
+- Manual, user-initiated refresh (configureable by block)
+- Administrator can choose one or both options above per block

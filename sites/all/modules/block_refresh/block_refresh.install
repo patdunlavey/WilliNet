@@ -1,0 +1,40 @@
+<?php
+// $Id: block_refresh.install,v 1.1.4.2 2010/08/15 01:52:44 bocaj Exp $
+
+/**
+ * @file
+ * Install, update and uninstall functions for the block_refresh module.
+ */
+
+function block_refresh_install() {
+  block_refresh_reset_jq();
+}
+
+// Support for block_refresh plugin
+function block_refresh_update_1() {
+  block_refresh_reset_jq();
+}
+
+// Add settings menu item, and change access to /block_refresh
+function block_refresh_update_2() {
+  menu_rebuild();
+}
+
+/**
+ *  Register new plugin with jQ
+ */
+function block_refresh_reset_jq() {
+  cache_clear_all('jq_plugins', 'cache');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function block_refresh_uninstall() {
+  variable_del('block_refresh_settings');
+  variable_del('block_refresh_default_automatic');
+  variable_del('block_refresh_default_automatic_timer');
+  variable_del('block_refresh_default_manual');
+  variable_del('block_refresh_group_auto_timer');
+}
+

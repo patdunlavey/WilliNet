@@ -1,0 +1,11 @@
+; $Id: block_refresh.info,v 1.3.4.2 2010/07/29 04:30:40 bocaj Exp $
+name = Block Refresh
+description = Allows blocks to automatically refresh their content.
+package = User interface
+core = 6.x
+; Information added by drupal.org packaging script on 2010-09-27
+version = "6.x-1.0"
+core = "6.x"
+project = "block_refresh"
+datestamp = "1285561860"
+
