@@ -254,7 +254,6 @@ function cablecast_extensions_search_results_page($search_text='', $category=0, 
     $params->dateComparator = $EventDateComparer;
     $params->date = $EventDate;
     $params->pager = 20;
-
     $shows = $cablecast_extensions->SearchShows($params);
     $content = "\n<!-- count = " . count($shows) . " -->\n";
     if ($shows[0]) {
@@ -610,10 +609,17 @@ if (!class_exists("cablecast_extensions")) {
             // add search string
             $wheres[] = '`internalTitle` LIKE "%s"';
             $where_args[] = '%'.$params->search_string.'%';
-            if(count($params->category) > 0) {
-                $joins[] = ' INNER JOIN {term_node} tn on (tn.nid = cs.nid) ';
-                $wheres[] = 'tn.tid IN ( %s )';
-                $where_args[] = implode(', ',$params->category);
+            if(is_array($params->category)) {
+                foreach($params->category as $key => $tid) {
+                    if(! $tid) {
+                        unset($params->category[$key]);
+                    }
+                }
+                if(count($params->category) > 0) {
+                    $joins[] = ' INNER JOIN {term_node} tn on (tn.nid = cs.nid) ';
+                    $wheres[] = 'tn.tid IN ( %s )';
+                    $where_args[] = implode(', ',$params->category);
+                }
             }
             //TODO enable when schema supports series id
             if($params->project_id > 0) {
@@ -637,8 +643,8 @@ if (!class_exists("cablecast_extensions")) {
                 implode(' ',$joins) .
       " WHERE ".implode(' and ', $wheres).
       " ORDER BY event_date DESC ";
-                //                  dpm($sql);
-                //                  dpm($where_args);
+//                                  dpm($sql);
+//                                  dpm($where_args);
 
                 //            $result = db_query($sql, $where_args);
                 if($params->pager) {
