@@ -277,20 +277,20 @@ function cablecast_extensions_search_results_page($search_text='', $category=0, 
     //    $form_state['redirect'] = 'search/shows';
 }
 
-function cablecast_extensions_municipal_meetings_online_page($project_id = NULL) {
-    $params->category = $project_id ? 0: 53;
-    $params->project_id = $project_id;
+function cablecast_extensions_municipal_meetings_online_page($category_ids = array(53,63)) {
+    $shows = array();
+    $project_names = array();
+    $params->category = $category_ids;
+    $params->project_id = 0;
     $params->date = "01/01/2007";
     $params->dateComparator = ">";
     $params->search_string = "%";
     $params->has_vod = TRUE;
     $params->pager = 20;
-    $shows = _cablecast_extensions_callback('SearchShows', $params);
-
-    if($params->project_id) {
-        $project_name = db_result(db_query('SELECT n.title FROM {node} n INNER JOIN {cablecast_project} cp on cp.nid = n.nid WHERE cp.cablecast_project_id = "%s"', $params->project_id));
-        drupal_set_title('Online '.$project_name);
-    }
+    $shows =  _cablecast_extensions_callback('SearchShows', $params);
+    $project_name = db_result(db_query('SELECT n.title FROM {node} n INNER JOIN {cablecast_project} cp on cp.nid = n.nid WHERE cp.cablecast_project_id = "%s"', $params->project_id));
+    
+    drupal_set_title('Online Municipal Meetings');
     if ($shows[0]) {
         $shows_table_header = array(t("Show"), t("Date"), t("Length"), t("Online"));
         $shows_table_rows = array();
@@ -577,7 +577,7 @@ if (!class_exists("cablecast_extensions")) {
         {
             //            dpm($params);
             $params->search_string = is_string($params->search_string) ? $params->search_string : "%";
-            $params->category = is_numeric($params->category) ? (int)$params->category : 0;
+            $params->category = is_array($params->category) ? $params->category : array($params->category);
             $params->series_id = is_int($params->series_id) ? $params->series_id : 0;
             $params->dateComparator = html_entity_decode($params->dateComparator);
             if(! strtotime($params->date)) {
@@ -610,10 +610,10 @@ if (!class_exists("cablecast_extensions")) {
             // add search string
             $wheres[] = '`internalTitle` LIKE "%s"';
             $where_args[] = '%'.$params->search_string.'%';
-            if($params->category > 0) {
+            if(count($params->category) > 0) {
                 $joins[] = ' INNER JOIN {term_node} tn on (tn.nid = cs.nid) ';
-                $wheres[] = 'tn.tid = %d';
-                $where_args[] = $params->category;
+                $wheres[] = 'tn.tid IN ( %s )';
+                $where_args[] = implode(', ',$params->category);
             }
             //TODO enable when schema supports series id
             if($params->project_id > 0) {
