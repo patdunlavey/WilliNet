@@ -157,7 +157,8 @@ function cablecast_extensions_block($op = 'list', $delta = 0, $edit = array()) {
 
 function _cablecast_extensions_block_now_showing_list() {
     $block['content'] = implode(_cablecast_extensions_callback('NowShowingList'));
-    $block['subject'] = t('Today on cablecast_extensions');
+//    $block['subject'] = t('Today on cablecast_extensions');
+    $block['subject'] = '';
     return $block;
 }
 
