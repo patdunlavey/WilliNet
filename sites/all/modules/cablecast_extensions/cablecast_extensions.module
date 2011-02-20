@@ -1227,12 +1227,10 @@ function cablecast_extensions_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL)
 
             if($node->type=='video')
             {
-                //    watchdog('Cablecast',$node->path);
                 global $base_url;
                 $show_nid = db_result(db_query('SELECT nid from {cablecast_show}  WHERE showID = %d', $node->field_show_id[0]['value']));
                 $show_node = node_load($show_nid);
                 return array(array('link' => $base_url."/".$show_node->path));
-                //    watchdog('Cablecast',$node->path);
             }
              
             break;
