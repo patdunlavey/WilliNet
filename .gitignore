@@ -1,6 +1,6 @@
-/*.buildpath
-/*.project
-/*.gitignore
-/.settings/
+error_log
 sites/default/files/*
 sites/default/settings.php
+/*.buildpath
+/*.project
+/.settings/
