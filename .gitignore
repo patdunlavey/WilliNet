@@ -3,3 +3,4 @@
 /*.gitignore
 /.settings/
 sites/default/files/*
+sites/default/settings.php
