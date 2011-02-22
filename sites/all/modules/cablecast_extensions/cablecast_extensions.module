@@ -1126,7 +1126,7 @@ function cablecast_extensions_municipal_meeting_schedule_page() {
         For Committee Agendas and Minutes visit the <a href='http://williamstown.ws' target='_blank'>Town of Williamstown's website</a>. 
         After each meeting takes place, it will be replayed several times on <a href='/schedule/WilliNet_Channel_16'>Channel 16</a>, and will be viewable online for at least a year, here at WilliNet.org.</div>";
 
-    $schedule_nids = db_query("SELECT ce.nid as nid FROM {cablecast_schedule_event} ce inner join {cablecast_show} cs on (cs.showID = ce.showID) inner join {term_node} tn on (tn.nid = cs.nid) WHERE cs.showID in (153,190,217,592,141,377,254,211,164,1284) and start_time >= ".strtotime(date("Y-m-d\T00:00:00",$date))."  ORDER BY start_time");
+    $schedule_nids = db_query("SELECT ce.nid AS nid FROM {cablecast_schedule_event} ce INNER JOIN {cablecast_show} cs ON (cs.showID = ce.showID) WHERE cs.category_id IN (42,43) AND cs.internalTitle LIKE '% - live' AND ce.start_time >= ".strtotime(date("Y-m-d\T00:00:00",$date))."  ORDER BY start_time");
     while($r = db_fetch_array($schedule_nids))  {
         $node = cablecast_extensions_schedule_event_node_load($r['nid']);
         foreach($node->taxonomy as $term) {
