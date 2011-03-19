@@ -499,12 +499,12 @@ if (!class_exists("cablecast_extensions")) {
       foreach($channel_tids as $channel_tid) {
         $channel_name = db_result(db_query('select name from {term_data} where tid = %d', $channel_tid));
         if($channel_name); {
-          //                    $args = array($channel_tid, $startTime, $endTime);
-          //                    $sql =  'SELECT cs.internalTitle as ShowTitle, cs.nid as show_nid, ce.showID as ShowID, ce.start_time as StartTime, ce.end_time as EndTime, ce.scheduleID FROM {cablecast_schedule_event} ce INNER JOIN {term_node} t ON (ce.nid = t.nid) INNER JOIN {cablecast_show} cs on (cs.showID = ce.showID) '.
-          //                            'WHERE ce.cg_exempt = 0 AND t.tid = %d AND ce.start_time >= %d AND ce.end_time <= %d';
-          $args = array($startTime, $endTime);
-          $sql =  'SELECT cs.internalTitle as ShowTitle, cs.nid as show_nid, ce.showID as ShowID, ce.start_time as StartTime, ce.end_time as EndTime, ce.scheduleID, t.tid FROM {cablecast_schedule_event} ce INNER JOIN {term_node} t ON (ce.nid = t.nid) INNER JOIN {cablecast_show} cs on (cs.showID = ce.showID) '.
-                            'WHERE ce.cg_exempt = 0 AND ce.start_time >= %d AND ce.end_time <= %d';
+                              $args = array($channel_tid, $startTime, $endTime);
+                              $sql =  'SELECT cs.internalTitle as ShowTitle, cs.nid as show_nid, ce.showID as ShowID, ce.start_time as StartTime, ce.end_time as EndTime, ce.scheduleID FROM {cablecast_schedule_event} ce INNER JOIN {term_node} t ON (ce.nid = t.nid) INNER JOIN {cablecast_show} cs on (cs.showID = ce.showID) '.
+                                      'WHERE ce.cg_exempt = 0 AND t.tid = %d AND ce.start_time >= %d AND ce.end_time <= %d';
+//          $args = array($startTime, $endTime);
+//          $sql =  'SELECT cs.internalTitle as ShowTitle, cs.nid as show_nid, ce.showID as ShowID, ce.start_time as StartTime, ce.end_time as EndTime, ce.scheduleID, t.tid FROM {cablecast_schedule_event} ce INNER JOIN {term_node} t ON (ce.nid = t.nid) INNER JOIN {cablecast_show} cs on (cs.showID = ce.showID) '.
+//                            'WHERE ce.cg_exempt = 0 AND ce.start_time >= %d AND ce.end_time <= %d';
           if(is_numeric($ShowID) && (int)$ShowID > 0) {
             $args[] = (int)$ShowID;
             $sql .= ' AND ce.showID = %d';
@@ -514,10 +514,10 @@ if (!class_exists("cablecast_extensions")) {
           $count = 0;
           $shows = array();
           while ($row = db_fetch_object($result)) {
-            if($row->tid == $channel_tid) {
+//            if($row->tid == $channel_tid) {
               $row->natural_start_time = date("Y-m-d\TH:i:s",$row->StartTime);
               $shows[] = $row;
-            }
+//            }
           }
           if($shows[0] != NULL ) {
             $online_show_ids = $this->GetOnlineVideoShowIDs();
