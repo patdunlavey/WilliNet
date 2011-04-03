@@ -2,13 +2,13 @@
 /*
  Plugin Name: cablecast_extensions
  Plugin URI: http://willinet.org
- Description: Enables display of Tightrope cablecast_extensions schedule information in Drupal
+ Description: Extends display of Tightrope cablecast_extensions schedule information in Drupal
  Version: 0.1
  Author: Patrick Dunlavey
  Author URI: http://pdcarto.com
  */
 
-/*  Copyright 2010  Patrick Dunlavey  (email : patdunlavey@gmail.com)
+/*  Copyright 2011  Patrick Dunlavey  (email : patdunlavey@gmail.com)
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2, as
@@ -124,6 +124,7 @@ function cablecast_extensions_theme() {
  */
 function cablecast_extensions_cron() {
   cache_clear_all('now_showing_list','cache');
+  cablecast_extensions_add_missing_video_show_ids();
 }
 
 /**
@@ -1285,6 +1286,139 @@ function cablecast_extensions_preprocess_views_view_row_rss(&$vars) {
         $vars['link'] = $element['link'];
       }
       break;
+    }
+  }
+}
+
+/**
+ * try to fill in show id and preview image file field for a video node
+ * by parsing the body of the video node
+ */
+function cablecast_extensions_add_missing_video_show_ids () {
+  // get a list of videos without a show id
+  $result = db_query("SELECT node.nid AS nid, node_revisions.body AS body
+ FROM {node} node 
+ LEFT JOIN {content_type_video} node_data_field_show_id ON node.vid = node_data_field_show_id.vid
+ LEFT JOIN {node_revisions} node_revisions ON node.vid = node_revisions.vid
+ LEFT JOIN {content_field_image} image_field ON image_field.nid = node.nid
+ WHERE (node_data_field_show_id.field_show_id_value IS NULL) AND (node.status = 1) AND (node.type in ('video')) AND (node.created >= %d)",time()-3697200);
+  while ($row = db_fetch_object($result)) {
+    // pull out the first image tag
+    preg_match ( '/<img\b[^>]*>/i' , $row->body, $matches );
+    // get the source statement from that tag
+    preg_match ( '/src=\"\b[^\"]*\"/i' , $matches[0], $src_matches );
+    // get the image url from that source statement
+    preg_match ( '/\"\b[^\"]*\"/i', $src_matches[0], $url_match);
+    $url = trim($url_match[0],'"');
+    // get the first numeral in the url - it should be the show id plus the channel id
+    preg_match ('/[0-9]+/',$src_matches[0], $num_matches);
+    // strip off the least significant digit, it's the channel id
+    $show_id = substr($num_matches[0],0,strlen($num_matches[0])-1);
+    if(is_numeric($show_id)) {
+      $video_node = node_load($row->nid);
+      $video_node->field_show_id[0]['value'] = $show_id;
+      // see if we can get the preview image also
+      if($file = cablecast_extensions_filefield_source_remote_upload($url)) {
+        $video_node->field_image = array(
+          array (
+            'fid' => $file['fid'],
+            'uid' => $file['fid'],
+            'filename' => $file['filename'],
+            'filepath' => $file['filepath'],
+            'filemime' => $file['filemime'],
+            'filesize' => $file['filesize'],
+            'status' => 1,
+            'timestamp' => $file['timestamp'],
+            'list' => 1,
+            'data' => array (
+              'alt' => NULL,
+              'title' => NULL,
+             ),
+           ),
+         );
+      }
+      node_save($video_node);
+    }
+  }
+}
+
+/**
+ * grab the preview image from the url, import and save the file,
+ * return the filefield info
+ * this function depends on the filefield_sources module being present
+ */
+function cablecast_extensions_filefield_source_remote_upload($url) {
+  if(module_exists('filefield_sources')) {
+    if (strlen($url) > 0 && valid_url($url) ) {
+      $field = content_fields('field_image', 'video');
+      // Check the headers to make sure it exists and is within the allowed size.
+      $ch = curl_init();
+      curl_setopt($ch, CURLOPT_URL, $url);
+      curl_setopt($ch, CURLOPT_HEADER, TRUE);
+      curl_setopt($ch, CURLOPT_NOBODY, TRUE);
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+      // Causes a warning if PHP safe mode is on.
+      @curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+      curl_exec($ch);
+      $info = curl_getinfo($ch);
+      curl_close($ch);
+
+      if ($info['http_code'] != 200) {
+        switch ($info['http_code']) {
+          case 403:
+            form_error($element, t('The remote file could not be transfered because access to the file was denied.'));
+            break;
+          case 404:
+            form_error($element, t('The remote file could not be transfered because it was not found.'));
+            break;
+          default:
+            form_error($element, t('The remote file could not be transfered due to an HTTP error (@code).', array('@code' => $info['http_code'])));
+        }
+        return;
+      }
+
+      // Update the $url variable to reflect any redirects.
+      $url = $info['url'];
+      $url_info = parse_url($url);
+      $pathinfo = pathinfo($url_info['path']);
+      $filename = rawurldecode(basename($url_info['path']));
+      $filename = filefield_sources_clean_filename($filename);
+      $filepath = file_create_filename($filename, file_directory_temp());
+
+      if (empty($pathinfo['extension'])) {
+        form_error($element, t('The remote URL must be a file and have an extension.'));
+        return;
+      }
+      // Perform basic extension check on the file before trying to transfer.
+      $extensions = 'png gif jpg jpeg';
+      $regex = '/\.('. ereg_replace(' +', '|', preg_quote($extensions)) .')$/i';
+      if (!empty($extensions) && !preg_match($regex, $filename)) {
+        form_error($element, t('Only files with the following extensions are allowed: %files-allowed.', array('%files-allowed' => $extensions)));
+        return;
+      }
+
+
+      // Set progress bar information.
+      $options = array(
+      'key' => 'video_field_image_0',
+      'filepath' => $filepath,
+      );
+      filefield_source_remote_set_transfer_options($options);
+      // Then make the actual request to download the file.
+      $ch = curl_init();
+      curl_setopt($ch, CURLOPT_URL, $url);
+      curl_setopt($ch, CURLOPT_HEADER, FALSE);
+      curl_setopt($ch, CURLOPT_WRITEFUNCTION, 'filefield_source_remote_curl_write');
+      // Causes a warning if PHP safe mode is on.
+      @curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+      if (curl_exec($ch) && $file = field_file_save_file($filepath, array(), filefield_widget_file_path($field))) {
+//        $item = array_merge($item, $file);
+      }
+      curl_close($ch);
+
+      // Delete the temporary file.
+      @unlink($filepath);
+      return $file;
     }
   }
 }
